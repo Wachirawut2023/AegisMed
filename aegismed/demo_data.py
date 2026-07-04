@@ -11,6 +11,20 @@ DEMO_BANNER = (
     "Add your Fireworks API key to .env to enable the real specialist agents."
 )
 
+# Canned intake questions for demo mode (the real intake agent tailors these to
+# each specific case). Must be a JSON string — aegismed/intake.py parses it.
+DEMO_INTAKE = """{
+  "ready": false,
+  "questions": [
+    {"question": "How long have the symptoms been present, and are they constant or episodic (any triggers such as exertion, heat, foods, or medications)?",
+     "why": "timeline and triggers separate inherited/metabolic causes from acquired ones"},
+    {"question": "Is there any family history of similar symptoms, early organ failure, or unexplained early deaths?",
+     "why": "points toward or away from a genetic diagnosis"},
+    {"question": "Have any prior tests, imaging, or biopsies been done, and what did they show?",
+     "why": "avoids repeating work and can narrow the differential quickly"}
+  ]
+}"""
+
 # The example patient case shown by the "Load example case" button in the UI.
 EXAMPLE_CASE = {
     "age": "24",

@@ -32,16 +32,31 @@ of your $50 credit.
 ```mermaid
 flowchart TD
     U[👩‍⚕️ Doctor fills the web form] -->|1. case sent as JSON| S[FastAPI server<br>aegismed/main.py]
-    S -->|2| O[Orchestrator<br>aegismed/orchestrator.py]
-    O -->|3. same case, five roles,<br>all at the same time| F[🔥 Fireworks AI API<br>Gemma on AMD hardware]
-    F -->|4. five written opinions| O
-    O -->|5. all opinions| F2[🔥 Synthesis call<br>the board chair]
-    F2 -->|6. ranked differential| O
-    O -->|7. one JSON response| U2[🖥 Browser renders<br>the board report]
+    S -->|2. /api/intake| IN[🧐 Intake agent<br>aegismed/intake.py]
+    IN -->|3. missing info?| Q{questions?}
+    Q -->|yes| U
+    U -->|4. answers added to case| S
+    Q -->|no / after answers| O[Orchestrator<br>aegismed/orchestrator.py]
+    O -->|5. same case, five roles,<br>all at the same time| F[🔥 Fireworks AI API<br>Gemma on AMD hardware]
+    F -->|6. five written opinions| O
+    O -->|7. all opinions| F2[🔥 Synthesis call<br>the board chair]
+    F2 -->|8. ranked differential| O
+    O -->|9. one JSON response| U2[🖥 Browser renders<br>the board report]
 ```
 
-A "board run" is simply **six LLM calls**: five specialists in parallel, then
-one synthesis call that reads their answers.
+## The intake step (asks before it acts)
+
+Just like Claude Code asks a couple of clarifying questions before it starts
+coding, AegisMed first runs an **intake agent**. When you press "Convene the
+board", the app doesn't jump straight to the specialists — it makes one quick
+model call that reviews the case and asks for the missing details that would
+most change the diagnosis (timeline, family history, exposures, prior tests).
+You answer what you can, then the board convenes with the richer case. You can
+also **Skip** straight to the diagnosis. If the case is already detailed, the
+intake agent asks nothing and the board runs immediately.
+
+After intake, a "board run" is **six LLM calls**: five specialists in parallel,
+then one synthesis call that reads their answers.
 
 ## Why multiple agents instead of one big question?
 
@@ -62,9 +77,10 @@ work better because:
 |---|---|
 | `aegismed/config.py` | Reads your settings (`.env` file): API key, model name, demo mode. |
 | `aegismed/llm.py` | The **only** place that talks to the AI. One function: give it a system prompt + question, get text back. Demo mode short-circuits here. |
+| `aegismed/intake.py` | The intake agent: reviews the case and returns clarifying questions (as JSON) before the board meets. |
 | `aegismed/specialists.py` | The five specialist personas (system prompts) + the board-chair prompt. **This is where the product's "intelligence" lives — editing these prompts is how you improve AegisMed.** |
 | `aegismed/orchestrator.py` | Runs the meeting: formats the case, fires all five specialists at once, then asks the chair to synthesize. |
-| `aegismed/main.py` | The web server. Serves the page, exposes `/api/diagnose`, validates input. |
+| `aegismed/main.py` | The web server. Serves the page, exposes `/api/intake` and `/api/diagnose`, validates input. |
 | `static/index.html` | Everything the user sees. Plain HTML/JS — no framework to learn. |
 | `aegismed/demo_data.py` | Hand-written sample output so the app works with no API key. |
 

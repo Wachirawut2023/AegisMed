@@ -15,14 +15,16 @@ A rare disease patient waits **5–7 years on average** for a correct diagnosis,
 AegisMed recreates the one thing that reliably catches rare diseases — a **multidisciplinary case conference** — as software a doctor can convene in 60 seconds:
 
 1. The physician enters a patient case (symptoms, history, labs).
-2. **Five AI specialist agents** — Cardiology, Neurology, Medical Genetics, Immunology & Rheumatology, Infectious Disease — each analyze the case independently and in parallel, each explicitly hunting for rare diseases in their field.
-3. A **synthesis agent** (the "board chair") merges the five opinions into a ranked differential diagnosis with rare-disease flags, points of agreement/disagreement, the single most valuable next test, and a do-not-miss warning.
+2. An **intake agent** reviews it first and asks for any missing high-value details (timeline, family history, exposures, prior tests) — like a clinician taking a focused history before consulting. The physician answers, or skips.
+3. **Five AI specialist agents** — Cardiology, Neurology, Medical Genetics, Immunology & Rheumatology, Infectious Disease — each analyze the case independently and in parallel, each explicitly hunting for rare diseases in their field.
+4. A **synthesis agent** (the "board chair") merges the five opinions into a ranked differential diagnosis with rare-disease flags, points of agreement/disagreement, the single most valuable next test, and a do-not-miss warning.
 
 Each agent is the same Gemma model given a different specialist role — cheap to run, easy to extend with more specialties.
 
 ```mermaid
 flowchart LR
-    A[👩‍⚕️ Physician<br>enters case] --> B[Orchestrator]
+    A[👩‍⚕️ Physician<br>enters case] --> I[🧐 Intake agent<br>asks for missing info]
+    I --> B[Orchestrator]
     B --> C1[🫀 Cardiology]
     B --> C2[🧠 Neurology]
     B --> C3[🧬 Medical Genetics]
@@ -105,6 +107,7 @@ All settings live in `.env` (see `.env.example`):
 aegismed/
   config.py        # settings from .env
   llm.py           # the one place that calls the AI model
+  intake.py        # asks clarifying questions before the board meets
   specialists.py   # the five specialist personas (system prompts)
   orchestrator.py  # runs specialists in parallel + synthesis
   main.py          # FastAPI web server

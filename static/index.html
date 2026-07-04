@@ -131,6 +131,18 @@
     <div class="status" id="status"></div>
   </div>
 
+  <div id="intake" class="card hidden" style="border:2px solid var(--accent);">
+    <h2 style="margin-top:0;">🧐 A few questions before we start</h2>
+    <p style="color:var(--muted);margin-top:0;">The intake clinician reviewed the case
+      and would like more detail. Answer what you can (leave blanks if unknown), then
+      convene the board.</p>
+    <div id="intakeQuestions"></div>
+    <div class="actions">
+      <button class="primary" id="intakeContinue">Continue to diagnosis</button>
+      <button class="ghost" id="intakeSkip">Skip &amp; diagnose now</button>
+    </div>
+  </div>
+
   <div id="results" class="hidden">
     <div id="demoBanner" class="demo-banner hidden"></div>
 
@@ -181,12 +193,78 @@ $("examplePicker").addEventListener("change", (e) => {
     + (c.expected_diagnosis || "n/a") + ")";
 });
 
+// Read the current form fields into a case object.
+function readCase() {
+  return {
+    age: $("age").value.trim(),
+    sex: $("sex").value,
+    symptoms: $("symptoms").value.trim(),
+    history: $("history").value.trim(),
+    labs: $("labs").value.trim(),
+  };
+}
+
+let currentQuestions = [];
+
+// PHASE 1 — "Convene the board" first asks the intake agent what else it needs.
 $("run").addEventListener("click", async () => {
-  const symptoms = $("symptoms").value.trim();
-  if (symptoms.length < 10) {
+  const c = readCase();
+  if (c.symptoms.length < 10) {
     $("status").innerHTML = '<span class="error">Please describe the symptoms (at least a sentence).</span>';
     return;
   }
+  $("run").disabled = true;
+  $("intake").classList.add("hidden");
+  $("results").classList.add("hidden");
+  $("status").innerHTML = '<span class="spinner"></span>The intake clinician is reviewing the case…';
+
+  try {
+    const res = await fetch("/api/intake", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(c),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || ("Server error " + res.status));
+    }
+    const data = await res.json();
+    currentQuestions = data.questions || [];
+
+    if (data.ready || currentQuestions.length === 0) {
+      // Nothing missing — go straight to the board.
+      await runDiagnosis("");
+    } else {
+      // Show the questions and wait for the physician to answer.
+      $("intakeQuestions").innerHTML = currentQuestions.map((q, i) => `
+        <label for="ans${i}">${escapeHtml(q.question)}</label>
+        ${q.why ? `<div style="color:var(--muted);font-size:.8rem;margin:-2px 0 4px;">why: ${escapeHtml(q.why)}</div>` : ""}
+        <textarea id="ans${i}" rows="2" placeholder="Your answer (or leave blank)"></textarea>
+      `).join("");
+      $("intake").classList.remove("hidden");
+      $("status").textContent = "";
+      $("run").disabled = false;
+    }
+  } catch (e) {
+    $("status").innerHTML = '<span class="error">' + e.message + "</span>";
+    $("run").disabled = false;
+  }
+});
+
+// Gather the typed answers into one text block for the case.
+function collectClarifications() {
+  return currentQuestions.map((q, i) => {
+    const a = ($("ans" + i)?.value || "").trim();
+    return a ? `Q: ${q.question}\nA: ${a}` : "";
+  }).filter(Boolean).join("\n\n");
+}
+
+$("intakeContinue").addEventListener("click", () => runDiagnosis(collectClarifications()));
+$("intakeSkip").addEventListener("click", () => runDiagnosis(""));
+
+// PHASE 2 — convene the full specialist board (optionally with clarifications).
+async function runDiagnosis(clarifications) {
+  $("intake").classList.add("hidden");
   $("run").disabled = true;
   $("status").innerHTML = '<span class="spinner"></span>Five specialists are reviewing the case… this can take up to a minute.';
   $("results").classList.add("hidden");
@@ -195,13 +273,7 @@ $("run").addEventListener("click", async () => {
     const res = await fetch("/api/diagnose", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        age: $("age").value.trim(),
-        sex: $("sex").value,
-        symptoms,
-        history: $("history").value.trim(),
-        labs: $("labs").value.trim(),
-      }),
+      body: JSON.stringify({ ...readCase(), clarifications }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -213,7 +285,7 @@ $("run").addEventListener("click", async () => {
     $("demoBanner").textContent = data.demo_banner || "";
     $("synthesis").innerHTML = renderText(data.synthesis);
     $("specialists").innerHTML = data.specialist_opinions.map(s =>
-      `<div class="spec-card"><h3>${s.specialty}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
+      `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
     ).join("");
 
     $("results").classList.remove("hidden");
@@ -223,7 +295,11 @@ $("run").addEventListener("click", async () => {
   } finally {
     $("run").disabled = false;
   }
-});
+}
+
+function escapeHtml(t) {
+  return (t || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
 </script>
 </body>
 </html>

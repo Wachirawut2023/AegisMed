@@ -21,8 +21,11 @@ DISCLAIMER = (
 )
 
 
-def _format_case(age: str, sex: str, symptoms: str, history: str, labs: str) -> str:
-    return (
+def _format_case(
+    age: str, sex: str, symptoms: str, history: str, labs: str,
+    clarifications: str = "",
+) -> str:
+    text = (
         f"PATIENT CASE\n"
         f"Age: {age or 'not stated'}\n"
         f"Sex: {sex or 'not stated'}\n"
@@ -30,11 +33,17 @@ def _format_case(age: str, sex: str, symptoms: str, history: str, labs: str) -> 
         f"Medical & family history: {history or 'not stated'}\n"
         f"Labs / investigations: {labs or 'not stated'}\n"
     )
+    if clarifications.strip():
+        text += f"Additional information (from intake questions):\n{clarifications.strip()}\n"
+    return text
 
 
-async def diagnose(age: str, sex: str, symptoms: str, history: str, labs: str) -> dict:
+async def diagnose(
+    age: str, sex: str, symptoms: str, history: str, labs: str,
+    clarifications: str = "",
+) -> dict:
     """Run the full board and return everything the UI needs as one dict."""
-    case_text = _format_case(age, sex, symptoms, history, labs)
+    case_text = _format_case(age, sex, symptoms, history, labs, clarifications)
 
     # Step 1: all specialists review the case in parallel.
     names = list(SPECIALISTS)

@@ -22,6 +22,8 @@ async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> st
     no API key needed) so the whole app can be tried and demonstrated offline.
     """
     if config.demo_mode():
+        if agent_name == "intake":
+            return demo_data.DEMO_INTAKE
         if agent_name == "synthesis":
             return demo_data.DEMO_SYNTHESIS
         return demo_data.DEMO_SPECIALIST_OPINIONS.get(
