@@ -13,7 +13,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import __version__, config, intake, llm, orchestrator
+from . import __version__, config, intake, knowledge, llm, orchestrator
 from .demo_data import EXAMPLE_CASE
 
 app = FastAPI(
@@ -47,6 +47,7 @@ async def health() -> dict:
         "version": __version__,
         "demo_mode": config.demo_mode(),
         "model": config.MODEL,
+        "knowledge_base_diseases": knowledge.kb_size(),
     }
 
 

@@ -31,6 +31,17 @@ and the MME (MyGene2 / Matchmaker Exchange) cohort. See the RareBench paper
 | **RareArena** ([HF](https://huggingface.co/datasets/THUMedInfo/RareArena)) — ~50k PMC-derived rare-disease cases | **CC BY-NC-SA 4.0** — the *non-commercial* clause conflicts with an MIT / startup submission | Run `python data/build_dataset.py --sources rarearena`. Output goes to `data/eval_cases_noncommercial.jsonl`, which is **gitignored**. Use for a large private accuracy test only; never commit it. |
 | **DDXPlus** ([HF](https://huggingface.co/datasets/aai530-group6/ddxplus)) — synthetic *common*-disease cases | CC-BY 4.0, but off-mission (not rare diseases) | A `load_ddxplus` adapter can be added as a "specificity control" (does AegisMed avoid over-calling rare diseases on ordinary symptoms?). |
 
+## Citation knowledge base
+
+`data/citations_index.json` (built by `data/build_knowledge_base.py`) maps
+disease names to their **Orphanet** and **OMIM** codes, derived from the
+RareBench disease mapping (**Apache-2.0**). AegisMed uses it to attach *verified*
+citation links to diagnoses — Orphanet/OMIM disease pages, plus deterministic
+PubMed and GARD (NIH) search links — instead of letting the AI invent references.
+See [`../docs/EVIDENCE.md`](../docs/EVIDENCE.md). Reference destinations
+(orpha.net, omim.org, pubmed.ncbi.nlm.nih.gov, rarediseases.info.nih.gov) are
+public; we link to them, we do not redistribute their content.
+
 ## Extending answer-matching with official synonyms
 
 `aliases.json` (alternate spellings per disease, so the scorer treats

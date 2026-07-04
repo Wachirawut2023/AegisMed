@@ -25,6 +25,23 @@ DEMO_INTAKE = """{
   ]
 }"""
 
+# Canned retrieval output for demo mode (the real retrieval agent tailors these
+# to each case; the reference links are then attached from the knowledge base).
+DEMO_RETRIEVAL_PHENOTYPES = [
+    "childhood-onset burning pain in hands and feet (acroparesthesia)",
+    "reduced sweating (hypohidrosis)",
+    "clustered dark-red skin papules (angiokeratomas)",
+    "proteinuria with rising creatinine",
+    "left ventricular hypertrophy",
+    "X-linked family history of renal failure",
+]
+DEMO_RETRIEVAL_CANDIDATES = [
+    "Fabry disease",
+    "Familial Mediterranean fever",
+    "Hereditary sensory and autonomic neuropathy",
+    "Amyloidosis",
+]
+
 # The example patient case shown by the "Load example case" button in the UI.
 EXAMPLE_CASE = {
     "age": "24",

@@ -21,6 +21,10 @@ Ground rules:
   diagnosis when a common one better explains the case.
 - Tie every diagnosis you name to SPECIFIC findings in the case: what supports it
   and what argues against it. Never invent findings that are not stated.
+- If a REFERENCE EVIDENCE section is included with the case, use those entries as
+  investigative leads: weigh each against the case and cite it by disease name
+  when it informs your reasoning. Do NOT invent papers, PMIDs, or guideline
+  citations from memory — the system attaches verified reference links itself.
 - Be honest about uncertainty.
 - Answer in under 250 words using this exact structure:
   **Domain relevance:** high / moderate / low / none — one line on why.
@@ -100,6 +104,8 @@ Principles:
   board. Judge it on the evidence, not on how many specialists mentioned it.
 - Deduplicate and reconcile conflicting likelihoods across specialists.
 - Ignore specialists who reported no findings in their domain.
+- Use the REFERENCE EVIDENCE (if provided) to support your reasoning and cite it
+  by disease name. Never invent citations — the system attaches verified links.
 
 Answer in under 450 words using this exact structure:
 **Ranked differential diagnosis:** numbered list, most likely first. For each:

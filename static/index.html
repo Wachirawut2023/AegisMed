@@ -151,6 +151,20 @@
       <div class="opinion" id="synthesis"></div>
     </div>
 
+    <div class="card" id="referencesCard">
+      <h2>📚 References &amp; citations</h2>
+      <div id="references"></div>
+      <p style="color:var(--muted);font-size:.8rem;margin-bottom:0;">
+        Verified links to authoritative sources. AegisMed never invents citations —
+        the AI cites the case, and these reference pages are attached automatically.
+      </p>
+    </div>
+
+    <details class="card">
+      <summary style="cursor:pointer;font-weight:600;">🔎 Reference evidence considered by the board</summary>
+      <div id="evidence" style="margin-top:12px;"></div>
+    </details>
+
     <h2 style="margin:22px 0 12px;">Specialist opinions</h2>
     <div class="specialists" id="specialists"></div>
   </div>
@@ -284,6 +298,8 @@ async function runDiagnosis(clarifications) {
     $("demoBanner").classList.toggle("hidden", !data.demo_mode);
     $("demoBanner").textContent = data.demo_banner || "";
     $("synthesis").innerHTML = renderText(data.synthesis);
+    renderReferences(data.references || []);
+    renderEvidence(data.evidence || {});
     $("specialists").innerHTML = data.specialist_opinions.map(s =>
       `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
     ).join("");
@@ -299,6 +315,35 @@ async function runDiagnosis(clarifications) {
 
 function escapeHtml(t) {
   return (t || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+function linkList(links) {
+  return (links || []).map(l =>
+    `<a href="${encodeURI(l.url)}" target="_blank" rel="noopener" style="color:var(--accent);">${escapeHtml(l.label)}</a>`
+  ).join(" · ");
+}
+
+function renderReferences(refs) {
+  if (!refs.length) { $("referencesCard").classList.add("hidden"); return; }
+  $("referencesCard").classList.remove("hidden");
+  $("references").innerHTML = refs.map(r => `
+    <div style="margin-bottom:10px;">
+      <strong>${escapeHtml(r.diagnosis)}</strong><br>
+      <span style="font-size:.85rem;">${linkList(r.links)}</span>
+    </div>`).join("");
+}
+
+function renderEvidence(ev) {
+  const phen = ev.phenotypes || [], cand = ev.candidates || [];
+  let html = "";
+  if (phen.length) {
+    html += `<p style="margin:0 0 8px;"><strong>Key phenotypes flagged:</strong> ${escapeHtml(phen.join("; "))}.</p>`;
+  }
+  if (cand.length) {
+    html += `<p style="margin:0 0 4px;"><strong>Candidate diseases looked up:</strong></p>`;
+    html += cand.map(c => `<div style="font-size:.85rem;margin-bottom:6px;">${escapeHtml(c.name)} — ${linkList(c.links)}</div>`).join("");
+  }
+  $("evidence").innerHTML = html || "<span style='color:var(--muted)'>No additional evidence retrieved.</span>";
 }
 </script>
 </body>

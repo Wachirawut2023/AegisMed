@@ -10,7 +10,7 @@ Flow:
 
 import asyncio
 
-from . import config, llm
+from . import config, knowledge, llm
 from .demo_data import DEMO_BANNER
 from .specialists import SPECIALISTS, SYNTHESIS_PROMPT
 
@@ -43,13 +43,23 @@ async def diagnose(
     clarifications: str = "",
 ) -> dict:
     """Run the full board and return everything the UI needs as one dict."""
+    from . import retrieval  # local import avoids a circular dependency
+
     case_text = _format_case(age, sex, symptoms, history, labs, clarifications)
 
-    # Step 1: all specialists review the case in parallel.
+    # Step 0: retrieve real reference evidence to ground the specialists.
+    evidence = await retrieval.retrieve(
+        age=age, sex=sex, symptoms=symptoms,
+        history=(history + ("\n" + clarifications if clarifications else "")),
+        labs=labs,
+    )
+    grounded_case = case_text + ("\n\n" + evidence["dossier"] if evidence["dossier"] else "")
+
+    # Step 1: all specialists review the grounded case in parallel.
     names = list(SPECIALISTS)
     opinions = await asyncio.gather(
         *(
-            llm.chat(SPECIALISTS[name], case_text, agent_name=name)
+            llm.chat(SPECIALISTS[name], grounded_case, agent_name=name)
             for name in names
         )
     )
@@ -61,7 +71,7 @@ async def diagnose(
     # Step 2: the board chair merges the specialists' opinions into one briefing.
     # The roster is passed in so the chair adapts if specialties are added/removed.
     synthesis_input = (
-        case_text
+        grounded_case
         + f"\nBOARD ROSTER: {', '.join(names)}\n"
         + "\nSPECIALIST OPINIONS\n\n"
         + "\n\n".join(
@@ -71,10 +81,16 @@ async def diagnose(
     )
     synthesis = await llm.chat(SYNTHESIS_PROMPT, synthesis_input, agent_name="synthesis")
 
+    # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
+    diagnoses = knowledge.extract_diagnoses(synthesis)
+    references = knowledge.references_for(diagnoses)
+
     return {
         "disclaimer": DISCLAIMER,
         "demo_mode": config.demo_mode(),
         "demo_banner": DEMO_BANNER if config.demo_mode() else "",
+        "evidence": {"phenotypes": evidence["phenotypes"], "candidates": evidence["candidates"]},
+        "references": references,
         "specialist_opinions": specialist_opinions,
         "synthesis": synthesis,
     }

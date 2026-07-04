@@ -37,7 +37,9 @@ flowchart TD
     Q -->|yes| U
     U -->|4. answers added to case| S
     Q -->|no / after answers| O[Orchestrator<br>aegismed/orchestrator.py]
-    O -->|5. same case, seven roles,<br>all at the same time| F[🔥 Fireworks AI API<br>Gemma on AMD hardware]
+    O -->|4b. retrieve real evidence<br>+ citations| R[🔎 Retrieval<br>aegismed/retrieval.py<br>+ knowledge.py]
+    R -->|evidence dossier| O
+    O -->|5. grounded case, seven roles,<br>all at the same time| F[🔥 Fireworks AI API<br>Gemma on AMD hardware]
     F -->|6. seven written opinions| O
     O -->|7. all opinions| F2[🔥 Synthesis call<br>the board chair]
     F2 -->|8. ranked differential| O
@@ -55,8 +57,11 @@ You answer what you can, then the board convenes with the richer case. You can
 also **Skip** straight to the diagnosis. If the case is already detailed, the
 intake agent asks nothing and the board runs immediately.
 
-After intake, a "board run" is **eight LLM calls**: seven specialists in
-parallel, then one synthesis call that reads their answers.
+After intake, a "board run" is **nine LLM calls**: one retrieval call to gather
+reference evidence, seven specialists in parallel, then one synthesis call that
+reads their answers. Verified citations are then attached to the result by
+`knowledge.py` — no extra model call. See [`EVIDENCE.md`](EVIDENCE.md) for how
+citations stay real.
 
 ## Why multiple agents instead of one big question?
 
@@ -78,6 +83,8 @@ work better because:
 | `aegismed/config.py` | Reads your settings (`.env` file): API key, model name, demo mode. |
 | `aegismed/llm.py` | The **only** place that talks to the AI. One function: give it a system prompt + question, get text back. Demo mode short-circuits here. |
 | `aegismed/intake.py` | The intake agent: reviews the case and returns clarifying questions (as JSON) before the board meets. |
+| `aegismed/retrieval.py` | The retrieval agent: extracts key phenotypes + candidate diseases and builds a cited evidence dossier for the specialists. |
+| `aegismed/knowledge.py` | Verified citations: maps a diagnosis to real Orphanet/OMIM/PubMed/GARD links (never invented). See `EVIDENCE.md`. |
 | `aegismed/specialists.py` | The seven specialist personas (system prompts) + the board-chair prompt. **This is where the product's "intelligence" lives — editing these prompts is how you improve AegisMed.** |
 | `aegismed/orchestrator.py` | Runs the meeting: formats the case, fires all seven specialists at once, then asks the chair to synthesize. |
 | `aegismed/main.py` | The web server. Serves the page, exposes `/api/intake` and `/api/diagnose`, validates input. |

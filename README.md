@@ -18,6 +18,7 @@ AegisMed recreates the one thing that reliably catches rare diseases — a **mul
 2. An **intake agent** reviews it first and asks for any missing high-value details (timeline, family history, exposures, prior tests) — like a clinician taking a focused history before consulting. The physician answers, or skips.
 3. **Seven AI specialist agents** — Cardiology, Neurology, Medical Genetics, Immunology & Rheumatology, Infectious Disease, Endocrinology & Metabolism, and Hematology-Oncology — each analyze the case independently and in parallel. Each hunts for rare diseases in its field, but may also say "nothing in my domain" rather than invent a diagnosis.
 4. A **synthesis agent** (the "board chair") merges the opinions into a ranked differential diagnosis with rare-disease flags, points of agreement/disagreement, the single most valuable next test, immediate safety actions, and a do-not-miss warning.
+5. Throughout, AegisMed grounds itself in **real, verified references** — Orphanet, OMIM, PubMed, and GARD links attached from a knowledge base (never invented by the AI). See [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
 
 Each agent is the same Gemma model given a different specialist role — cheap to run, easy to extend with more specialties.
 
@@ -110,8 +111,10 @@ aegismed/
   config.py        # settings from .env
   llm.py           # the one place that calls the AI model
   intake.py        # asks clarifying questions before the board meets
+  retrieval.py     # gathers real reference evidence for the specialists
+  knowledge.py     # verified citations (Orphanet/OMIM/PubMed) — never invented
   specialists.py   # the seven specialist personas (system prompts)
-  orchestrator.py  # runs specialists in parallel + synthesis
+  orchestrator.py  # retrieval → specialists in parallel → synthesis → citations
   main.py          # FastAPI web server
 static/index.html  # the UI
 data/              # dataset builder + generated eval/demo cases (public sources)
