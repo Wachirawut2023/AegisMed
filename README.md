@@ -66,6 +66,22 @@ With **no API key**, AegisMed runs in **demo mode**: the built-in example case r
 FIREWORKS_API_KEY=fw_your_key_here
 ```
 
+## Evaluation
+
+AegisMed is tested against **real, publicly-licensed rare-disease cases** (from
+[RareBench](https://huggingface.co/datasets/chenxz/RareBench) and
+[CUPCase](https://huggingface.co/datasets/ofir408/CupCase), both Apache-2.0). Two steps:
+
+```bash
+python data/build_dataset.py   # download + convert public cases (no API key needed)
+python eval/run_eval.py        # score AegisMed against them (needs your Fireworks key)
+```
+
+This produces a headline number — *"the correct diagnosis was surfaced in X% of
+held-out cases"* — written to `eval/results.md`. See
+[`docs/DATA_AND_EVAL.md`](docs/DATA_AND_EVAL.md) for a beginner-friendly walkthrough
+and [`data/SOURCES.md`](data/SOURCES.md) for dataset attribution and licenses.
+
 ## Configuration
 
 All settings live in `.env` (see `.env.example`):
@@ -93,7 +109,9 @@ aegismed/
   orchestrator.py  # runs specialists in parallel + synthesis
   main.py          # FastAPI web server
 static/index.html  # the UI
-docs/              # hackathon guide, architecture, roadmap, checklist
+data/              # dataset builder + generated eval/demo cases (public sources)
+eval/              # evaluation harness (scores AegisMed on known cases)
+docs/              # hackathon guide, architecture, roadmap, checklist, data & eval
 ```
 
 New here? Start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — it explains every concept in plain language.

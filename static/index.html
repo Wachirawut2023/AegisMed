@@ -124,7 +124,9 @@
 
     <div class="actions">
       <button class="primary" id="run">Convene the board</button>
-      <button class="ghost" id="example">Load example case</button>
+      <select id="examplePicker" class="ghost" style="max-width:340px;">
+        <option value="">Load example case…</option>
+      </select>
     </div>
     <div class="status" id="status"></div>
   </div>
@@ -154,12 +156,29 @@ function renderText(text) {
     .replace(/\n/g, "<br>");
 }
 
-$("example").addEventListener("click", async () => {
-  const res = await fetch("/api/example-case");
-  const c = await res.json();
-  $("age").value = c.age; $("sex").value = c.sex;
-  $("symptoms").value = c.symptoms; $("history").value = c.history; $("labs").value = c.labs;
-  $("status").textContent = "Example case loaded — press “Convene the board”.";
+// Populate the example-case dropdown from the public-dataset demo cases.
+let demoCases = [];
+(async () => {
+  try {
+    const res = await fetch("/api/demo-cases");
+    demoCases = await res.json();
+    const picker = $("examplePicker");
+    demoCases.forEach((c, i) => {
+      const opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = c.label || ("Example " + (i + 1));
+      picker.appendChild(opt);
+    });
+  } catch (e) { /* dropdown just stays with its single placeholder */ }
+})();
+
+$("examplePicker").addEventListener("change", (e) => {
+  const c = demoCases[Number(e.target.value)];
+  if (!c) return;
+  $("age").value = c.age || ""; $("sex").value = c.sex || "";
+  $("symptoms").value = c.symptoms || ""; $("history").value = c.history || ""; $("labs").value = c.labs || "";
+  $("status").textContent = "Example loaded — press “Convene the board”. (Known diagnosis: "
+    + (c.expected_diagnosis || "n/a") + ")";
 });
 
 $("run").addEventListener("click", async () => {

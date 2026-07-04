@@ -6,6 +6,7 @@ Three routes:
   POST /api/diagnose receives the patient case, runs the board, returns JSON
 """
 
+import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -51,6 +52,34 @@ async def health() -> dict:
 async def example_case() -> dict:
     """The built-in sample case used by the 'Load example case' button."""
     return EXAMPLE_CASE
+
+
+DEMO_CASES_FILE = Path(__file__).resolve().parent.parent / "data" / "demo_cases.json"
+
+
+@app.get("/api/demo-cases")
+async def demo_cases() -> list[dict]:
+    """Curated real cases from public datasets for the demo dropdown.
+
+    Returns a short list of {label, age, sex, symptoms, history, labs,
+    expected_diagnosis}. Falls back to the single built-in example if the
+    dataset has not been built yet (run: python data/build_dataset.py).
+    """
+    if DEMO_CASES_FILE.exists():
+        cases = json.loads(DEMO_CASES_FILE.read_text(encoding="utf-8"))
+        return [
+            {
+                "label": f"{c.get('source', 'case')}: {c['expected_diagnosis']}",
+                "age": c.get("age", ""),
+                "sex": c.get("sex", ""),
+                "symptoms": c.get("symptoms", ""),
+                "history": c.get("history", ""),
+                "labs": c.get("labs", ""),
+                "expected_diagnosis": c.get("expected_diagnosis", ""),
+            }
+            for c in cases
+        ]
+    return [{"label": "Example: Fabry disease", **EXAMPLE_CASE, "expected_diagnosis": "Fabry disease"}]
 
 
 @app.post("/api/diagnose")

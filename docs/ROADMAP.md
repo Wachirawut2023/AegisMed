@@ -27,10 +27,12 @@ July 9 evening** — the last two days belong to the demo, video, and submission
 
 ## 🔨 Build days
 
-### Mon July 7 — make it yours
+### Mon July 7 — make it yours + measure it
 - [ ] Improve the specialist prompts with your own medical knowledge (this is your real edge — you understand the clinical reasoning)
-- [ ] Test with 3–5 realistic cases (different rare diseases); note where output is weak
-- [ ] Optional: add a 6th specialist (e.g., Endocrinology, Hematology) — one dict entry
+- [ ] Build the evaluation data: `python data/build_dataset.py` (free, no API key)
+- [ ] Run the eval with your API key: `python eval/run_eval.py` → get your headline accuracy number for the pitch (see `docs/DATA_AND_EVAL.md`)
+- [ ] Skim the ❌ rows in `eval/results.md`; add missed synonyms to `data/aliases.json`
+- [ ] Optional: add a 6th specialist (e.g., Endocrinology, Hematology) — one dict entry, then re-run the eval to see if the score improves
 
 ### Tue July 8 — deploy on AMD (judging criterion!)
 - [ ] Create an **AMD Developer Cloud** instance (use your $100 credits; a small CPU droplet is enough to host the app — GPU only needed if you self-host the model)
