@@ -82,6 +82,26 @@ in it. It prints a running tally and writes a report to **`eval/results.md`**:
 > case "fails" and the score is meaningless. The script warns you when this
 > happens — it's only testing that the plumbing works.
 
+### The intake step during scoring
+
+The eval mirrors the real app flow: for each case it first runs the **intake
+agent** (the one that asks clarifying questions), then the board. Since there's
+no human to answer during a batch run, an **auto-answer agent** replies to each
+question using only what the case already contains (anything absent is marked
+"Not documented"). The running log shows `(+3q)` when intake asked 3 questions.
+
+- This makes the score reflect what real users experience (intake + board).
+- It costs a couple of extra model calls per case. To score the raw case only —
+  faster and cheaper — pass `--no-intake`:
+
+```bash
+python eval/run_eval.py --no-intake       # board only, no intake
+python eval/run_eval.py                    # intake + board (default)
+```
+
+Running both is a nice experiment for your write-up: it shows whether the
+intake step actually improves diagnostic accuracy.
+
 ## How "getting it right" is judged
 
 The scorer marks a **hit** if the correct diagnosis — or any accepted synonym

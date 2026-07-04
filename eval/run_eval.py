@@ -35,7 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from aegismed import config, orchestrator  # noqa: E402
+from aegismed import config, intake, orchestrator  # noqa: E402
 
 DATA_DIR = ROOT / "data"
 RESULTS = Path(__file__).resolve().parent / "results.md"
@@ -90,10 +90,28 @@ def load_alias_table() -> dict[str, list[str]]:
     return json.loads(path.read_text()) if path.exists() else {}
 
 
-async def score_case(case: dict, alias_table: dict) -> dict:
+async def score_case(case: dict, alias_table: dict, use_intake: bool = True) -> dict:
+    # Mirror the real app flow: intake first, then the board. During scoring
+    # there's no human, so answer the intake questions automatically from the
+    # case data (aegismed/intake.auto_answer).
+    clarifications = ""
+    n_questions = 0
+    if use_intake:
+        intake_res = await intake.gather_questions(
+            age=case["age"], sex=case["sex"], symptoms=case["symptoms"],
+            history=case["history"], labs=case["labs"],
+        )
+        questions = intake_res.get("questions", [])
+        n_questions = len(questions)
+        if not intake_res.get("ready", True) and questions:
+            clarifications = await intake.auto_answer(
+                questions, age=case["age"], sex=case["sex"],
+                symptoms=case["symptoms"], history=case["history"], labs=case["labs"],
+            )
+
     result = await orchestrator.diagnose(
         age=case["age"], sex=case["sex"], symptoms=case["symptoms"],
-        history=case["history"], labs=case["labs"],
+        history=case["history"], labs=case["labs"], clarifications=clarifications,
     )
     board_text = result["synthesis"] + "\n" + "\n".join(
         o["opinion"] for o in result["specialist_opinions"])
@@ -103,7 +121,8 @@ async def score_case(case: dict, alias_table: dict) -> dict:
     aliases.update(alias_table.get(case["expected_diagnosis"], []))
     hit = is_hit(board_text, sorted(aliases))
     return {"id": case["id"], "source": case["source"],
-            "expected": case["expected_diagnosis"], "hit": hit}
+            "expected": case["expected_diagnosis"], "hit": hit,
+            "intake_questions": n_questions}
 
 
 async def main_async(args) -> None:
@@ -115,26 +134,30 @@ async def main_async(args) -> None:
         print("    scores are NOT meaningful. Set FIREWORKS_API_KEY in .env for")
         print("    a real evaluation. Running anyway to test the pipeline.\n")
 
-    print(f"Scoring {len(cases)} cases with model: {config.MODEL}\n")
+    intake_note = "on (auto-answered from case)" if not args.no_intake else "off"
+    print(f"Scoring {len(cases)} cases with model: {config.MODEL}")
+    print(f"Intake step: {intake_note}\n")
     rows = []
     for i, case in enumerate(cases, 1):
         try:
-            row = await score_case(case, alias_table)
+            row = await score_case(case, alias_table, use_intake=not args.no_intake)
         except Exception as e:  # noqa: BLE001 — report and continue the run
             row = {"id": case["id"], "source": case["source"],
                    "expected": case["expected_diagnosis"], "hit": False,
                    "error": str(e)[:80]}
         rows.append(row)
         mark = "✓" if row["hit"] else "·"
+        q = row.get("intake_questions")
+        qnote = f" (+{q}q)" if q else ""
         note = f"  ! {row['error']}" if row.get("error") else ""
-        print(f"  [{i}/{len(cases)}] {mark} {row['expected'][:48]}{note}")
+        print(f"  [{i}/{len(cases)}] {mark} {row['expected'][:46]}{qnote}{note}")
         if args.delay:
             time.sleep(args.delay)
 
-    write_report(rows, alias_table)
+    write_report(rows, alias_table, use_intake=not args.no_intake)
 
 
-def write_report(rows: list[dict], alias_table: dict) -> None:
+def write_report(rows: list[dict], alias_table: dict, use_intake: bool = True) -> None:
     total = len(rows)
     hits = sum(r["hit"] for r in rows)
     pct = 100 * hits / total if total else 0
@@ -148,6 +171,7 @@ def write_report(rows: list[dict], alias_table: dict) -> None:
 
     lines = ["# AegisMed evaluation results", ""]
     lines.append(f"**Model:** `{config.MODEL}`  ")
+    lines.append(f"**Intake step:** {'on — questions auto-answered from the case' if use_intake else 'off'}  ")
     lines.append(f"**Demo mode:** {config.demo_mode()} "
                  f"{'(scores not meaningful)' if config.demo_mode() else ''}  ")
     lines.append("")
@@ -180,6 +204,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Evaluate AegisMed on rare-disease cases.")
     ap.add_argument("--limit", type=int, default=None, help="only score the first N cases")
     ap.add_argument("--delay", type=float, default=0.0, help="seconds to pause between cases")
+    ap.add_argument("--no-intake", action="store_true",
+                    help="skip the intake step (score the raw case only — faster, fewer calls)")
     asyncio.run(main_async(ap.parse_args()))
 
 

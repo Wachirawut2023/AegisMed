@@ -80,3 +80,36 @@ async def gather_questions(
     result = _parse_intake_json(raw)
     result["demo_mode"] = config.demo_mode()
     return result
+
+
+AUTO_ANSWER_PROMPT = """
+You are a clinical records assistant. You are given a full patient case and a
+list of questions asked by an intake clinician. Answer EACH question using ONLY
+information found in the case. If the case does not contain the answer, reply
+exactly "Not documented." Never guess or invent findings.
+
+Format your reply as repeated blocks:
+Q: <the question>
+A: <answer taken from the case, or "Not documented.">
+"""
+
+
+async def auto_answer(
+    questions: list[dict],
+    age: str, sex: str, symptoms: str, history: str, labs: str,
+) -> str:
+    """Answer the intake questions automatically from the case data.
+
+    Used by the evaluation harness (and any batch/automated run) where there is
+    no human to type answers: it simulates a physician reading the chart, pulling
+    out whatever the case already contains and marking the rest "Not documented".
+    Returns a Q/A text block suitable for the `clarifications` field.
+    """
+    if not questions or config.demo_mode():
+        # Demo mode has canned (non-comprehending) output, so skip enrichment.
+        return ""
+    case_text = _format_case(age, sex, symptoms, history, labs)
+    q_block = "\n".join(f"- {q['question']}" for q in questions)
+    prompt = f"{case_text}\n\nQUESTIONS:\n{q_block}"
+    answer = await llm.chat(AUTO_ANSWER_PROMPT, prompt, agent_name="auto_answer")
+    return answer.strip()
