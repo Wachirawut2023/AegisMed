@@ -1,122 +1,122 @@
 [
   {
-    "id": "cupcase-8",
+    "id": "demo-cupcase-1",
     "source": "CUPCase",
     "case_style": "narrative",
-    "age": "26",
-    "sex": "male",
-    "symptoms": "A 26-year-old Japanese male presented with severe headache and nausea for approximately 3 weeks. He had a prior episode of suspected convulsion of which magnetic resonance imaging (MRI) revealed a cystic nodular lesion measuring approximately 60 mm in diameter, located in the left parietal lobe of the cerebrum. The patient was administered medication, and symptoms were subsequently relieved. However, 12 days later, he experienced worsened symptoms and was transferred and admitted to the emergency department of the University of Miyazaki Hospital. MRI showed a mass of 70 × 53 × 57 mm in the left temporoparietal lobe (Fig. 1 a–c). A solid element with slight hypointensity on T1-weighted and hyperintensity on T2-weighted images along the dura mater was noted. Cystic changes were likely associated with the sanguineous fluid. A peritumoral band with hyperintensity on T2-weighted image was observed at the periphery of the lesion, suggesting an extra-axial lesion . A dural tail sign was also noted on the gadolinium-enhanced T1-weighted image . The lesion appeared to be focally infiltrative to the brain surface, but no apparent connection to the ventricle was observed (Fig. 1 a–c). ...",
+    "age": "61",
+    "sex": "female",
+    "symptoms": "A 61-year-old Caucasian woman was referred to our dermatology department in July 2019 because of a skin eruption that had initiated 3 months earlier. In April there was an acute onset of erythematous macules and papules on both thighs, which later spread to the back, arms, and the back of the hands. Treatment with topical steroids of medium potency (mometasone furoate 0.1%) and hydrating creams was inefficient.  \nIndividual lesions tended to last for approximately 2 days before regression, but were asymptomatic. There were no bullae or erosions, nor mucosal lesions. Exposure to the sun aggravated the skin eruption.  \nThe patient did not experience musculoskeletal, gastrointestinal, pulmonary, or any other symptoms. There was no family history of autoimmune or other relevant diseases.  \nPhysical findings  \nOn clinical examination, we found multiple sharply demarcated erythematous plaques on the back, chest, abdomen, and legs, and somewhat less on the arms and hands. There were no lesions on the groin, palmoplantar, or on the scalp (Fig. 1a–c).  \nFig. 1  \nPatient presenting with a skin eruption with acute onset consisting of multiple sharply demarcated erythematous plaques on the ...",
     "history": "",
     "labs": "",
-    "expected_diagnosis": "Meningioma",
+    "expected_diagnosis": "Hypocomplementemic urticarial vasculitis",
     "expected_diagnosis_codes": [],
     "expected_aliases": [
-      "meningioma"
-    ],
-    "distractors": [
-      "Hemangioma",
-      "Mumps meningitis",
-      "Benign neoplasm of meninges"
+      "hypocomplementemic urticarial vasculitis"
     ]
   },
   {
-    "id": "cupcase-14",
+    "id": "demo-cupcase-19",
     "source": "CUPCase",
     "case_style": "narrative",
-    "age": "20",
-    "sex": "male",
-    "symptoms": "A previously healthy 20-year-old southeast Asian–American male presented with 6 weeks of intermittent fevers, nonproductive cough, dry eyes, oral ulcers, rashes, arthritis, and myalgias. The patient’s vitals were temperature of 102°F, heart rate 99 beats per minute, respiratory rate 22 breaths per minute, blood pressure 112/63 mmHg, and oxygen saturation 96% on room air. On physical examination, the patient was not in acute distress, no scleral icterus was noted, extraocular movements were intact, with oral ulcers on the hard palate. The patient did not have evidence of jugular vein distention (JVD), carotid bruits, and no palpable cervical or axillary lymphadenopathy. Cardiac examination found normal rate and rhythm with audible S1 and S2. Lung examination was clear to auscultation bilaterally without rales, rhonchi, or wheezes. The patient’s abdomen was soft, nontender, and nondistended with normoactive bowel sounds. The patient noted papules along lateral digits and tender palmar maculopapular lesions, synovitis of the hands and feet, but no noticeable edema of all extremities. Neurological examination was without focal deficits, and he was alert, awake, and oriented, answering ...",
+    "age": "42",
+    "sex": "female",
+    "symptoms": "A 42-year-old pregnant Iranian woman, Gravid 3 para2 live2, at 30 weeks of gestation was referred to the obstetric emergency department of Vali-Asr Hospital (Birjand, Iran) by the emergency service in December 2020. She was suffering from acute-onset severe abdominal pain followed by nausea, vomiting, hypotension, and dizziness. She had two healthy children, her previous pregnancies were uneventful, and she declared no postpartum complications during her previous gestations. She had no history of cigarette smoking or alcohol consumption, and her marriage was consanguineous. Moreover, she was living in a deprived remote village around Birjand City (Southern Khorasan Province, Iran) with very low socioeconomic status. Upon her arrival, her body mass index, blood pressure, pulse rate, respiratory rate, oral temperature, and peripheral oxygen saturation in room air were 22.6 kg/m², 70 mmHg, 130 beats per minute, 14 breaths per minute, 36.9 °C, and 98%, respectively. Her skin and mucosal membranes were completely pale, and urinary output was less than 50 cc per hour. She was lethargic, but neurological examination did not reveal any focal neurological deficit and corneal reflex was ...",
     "history": "",
     "labs": "",
-    "expected_diagnosis": "Anti-MDA5 positive dermatomyositis",
+    "expected_diagnosis": "Ehlers-Danlos syndrome",
     "expected_diagnosis_codes": [],
     "expected_aliases": [
-      "anti mda5 positive dermatomyositis"
-    ],
-    "distractors": [
-      "Juvenile dermatomyositis",
-      "Other dermatomyositis with other organ involvement",
-      "Polymyositis"
+      "ehlers danlos syndrome"
     ]
   },
   {
-    "id": "cupcase-9",
+    "id": "demo-cupcase-21",
     "source": "CUPCase",
     "case_style": "narrative",
-    "age": "",
-    "sex": "",
-    "symptoms": "Methods\nThis case series discusses 16 consecutive patients started on tocilizumab for relapsed or refractory conditions between August 2018 and April 2021, after the establishment of a new hub and spoke model. The central assessing hub was St George’s University Hospitals NHS Foundation Trust, a large tertiary rheumatology center in the south of England.\nA new referral form for tocilizumab was utilized and all cases were discussed in a fortnightly multidisciplinary team meeting. Information was gathered for this analysis retrospectively through these referral forms and electronic patient records, with additional correspondence from referring clinicians and corroboration with patients themselves. The central dispensing pharmacy was at St George’s Hospital, who validated patient numbers and details.\nA total of 16 patients were identified (): 11 female and 5 male, with an average age of 72.4 (range 61–82) years. Seven patients were internal referrals from clinicians at the tertiary center, with the remainder from local district general hospitals.\n Data collection from 16 patients started on tocilizumab\nFull size table\nTocilizumab and steroid dosing\nThe difference between daily ...",
+    "age": "31",
+    "sex": "female",
+    "symptoms": "A 31-year-old Asian woman presented with slurred speech and limb weakness. She first noticed slurred speech in September and subsequently developed drooping of the bilateral eyelid and, eventually, limb weakness. The above symptoms increased during periods of activity and improved after periods of rest. She was treated with pyridostigmine bromide (60 mg/8 hours) in a local hospital initially. The symptoms improved after taking medicine, but occasional weakness of both legs and chest tightness remained. Regarding past medical history, this patient underwent a cesarean section to give birth to her second child 3 months ago. General physical examination revealed a yellow discoloration of facial skin and sclera. Neurological examination revealed mild dysarthria, mild droop of both side ptosis, and generalized muscle weakness after exercise. Weakness was most pronounced in the lower extremities. The upper eyelid fatigue test score was 2. Repetitive nerve stimulation showed that the amplitude of right axillary nerve decreased significantly at 1, 3, and 5 Hz, with an amplitude reduction of 35.6%, 45.2%, and 62.8% respectively. Besides, the amplitude of left facial nerve decreased by ...",
     "history": "",
     "labs": "",
-    "expected_diagnosis": "Giant cell arteritis (GCA)",
+    "expected_diagnosis": "Myasthenia Gravis (MG) and Primary Biliary Cholangitis (PBC)",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "myasthenia gravis  mg  and primary biliary cholangitis  pbc"
+    ]
+  },
+  {
+    "id": "demo-cupcase-26",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "65",
+    "sex": "female",
+    "symptoms": "A 65-year-old Egyptian woman with a history of type 2 diabetes, hypertension, primary hypothyroidism, and class-III obesity presented acutely to the emergency room (ER) with an intractable headache and blurred vision. She had also recently experienced a worsening of her diabetes control despite being on a basal-bolus insulin regimen. She had no clear-cut features apart from central obesity, and she had no family history of pituitary tumors or similar illness. She is a stay-at-home mother to four. Children are all a product of uneventful pregnancies and were delivered normally. She is married for 20 years to a physician. She never smoked or drank alcohol. Computed tomography (CT) brain imaging and subsequent magnetic resonance imaging (MRI) showed a sellar mass consisting of a macroadenoma that measured 2.9 × 1.5 cm invading the roof of the sphenoid sinuses and compressing the neurophysis and the optic chiasm . She has central obesity but did not appear cushingoid or acromegalic. Visual field examination revealed left homonymous hemianopia and right homonymous inferior quadrantanopia . Initial laboratory investigations revealed elevated corticotropin (ACTH) levels of 33.6 ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Cushing's disease",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "cushing s disease"
+    ]
+  },
+  {
+    "id": "demo-cupcase-49",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "81",
+    "sex": "male",
+    "symptoms": "Case 1  \nAn 81-year-old Japanese man presented with a history of pharyngeal pain, malaise in both lower extremities, and jaw claudication for 1 month. He had a past medical history of hypertension, angina pectoris, and reflux esophagitis. He reported no visual disturbance. On physical examination, he was febrile with a body temperature of 38 °C. He had no active synovitis or rash. His TAs were not palpable but were tender; his cranial nerve was normal. There was no lymphadenopathy or hepatosplenomegaly. Other findings on physical examination were unremarkable. A laboratory investigation revealed normocytic anemia and raised inflammatory marker levels. His renal function and electrolyte levels were within normal reference ranges. His blood and urine cultures showed negative results. Further investigations included screening for vasculitis, autoimmune disorders, viral infections, and malignancies; the results were either negative or in the normal range (). Slight bleeding of the right posterior pole of his eyeball and leukoma of his left cornea were observed on fundus examination. Computed tomography (CT) of his neck, thorax, abdomen, and pelvis were negative for lymphadenopathy, ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Giant Cell Arteritis (GCA)",
     "expected_diagnosis_codes": [],
     "expected_aliases": [
       "giant cell arteritis  gca"
-    ],
-    "distractors": [
-      "Giant cell arteritis with polymyalgia rheumatica",
-      "Giant cell granuloma, central",
-      "Glaucoma"
     ]
   },
   {
-    "id": "cupcase-1",
+    "id": "demo-cupcase-51",
     "source": "CUPCase",
     "case_style": "narrative",
-    "age": "60",
-    "sex": "",
-    "symptoms": "Patient 1 is a 60-year-old Caucasian female with BRAF wild type unknown primary (tumor mutation burden 4 mutations/megabase) who originally presented with a renal mass and had a nephrectomy positive for melanoma. She developed lung disease and was started on pembrolizumab. After 3 months, her lung disease progressed, and she was switched to ipilimumab 3 mg/kg and nivolumab 1 mg/kg for four cycles with concurrent radiotherapy to a dominant lung lesion. Her maintenance nivolumab was halted after 2 months as she required steroids for radiation pneumonitis. She subsequently received anti-PD-1 directed therapy with anti-LAG-3 on a clinical trial, but her disease progressed after two cycles with progressive bilateral pulmonary and pleural based masses, increase in a right pericardial deposit, enlargement of a soft tissue mass adjacent to the spleen and a nodule adjacent to the right kidney with an unchanged lytic lesion within the L3 vertebral body. She received 18 Gy in one fraction of palliative radiation to the L3 spinal lesion 3 days prior to HD IL-2 for pain (day 1). She was then admitted for HD IL-2 and received nine consecutive doses on days 4 through 7. Treatment was held for ...",
-    "history": "",
-    "labs": "",
-    "expected_diagnosis": "metastatic melanoma",
-    "expected_diagnosis_codes": [],
-    "expected_aliases": [
-      "metastatic melanoma"
-    ],
-    "distractors": [
-      "Melanoma in situ",
-      "Malignant melanoma of skin of breast",
-      "Melanoma in situ, unspecified"
-    ]
-  },
-  {
-    "id": "cupcase-7",
-    "source": "CUPCase",
-    "case_style": "narrative",
-    "age": "34",
-    "sex": "male",
-    "symptoms": "A 34-year-old Hispanic male with a past medical history of hypertension presented to our hospital with abdominal pain that started the night before admission. The patient reported 10/10 intensity pain. He described his pain as constant, with no specific relieving factors, sharp, located mainly in the left paraumbilical region, and radiating to his left flank. He reported having nausea and three episodes of non-bloody, non-bilious emesis. He stated that his friends gave him crystal meth a day prior to the onset of his symptoms, adding that it was the first time in his life that he had ever taken illicit drugs. He denied fever, chills, cough, chest pain, or shortness of breath. He visited the clinic in our hospital about 5 years ago and was diagnosed with hypertension but was not taking any medications at the time of his emergency department visit. There was no history of any surgeries in the past. He had no history of any allergies to medications or foods. He reported that his father, mother, sister, and brothers were healthy, and all of them lived in Honduras. The patient's social history revealed that he worked as a painter and lived with his wife and kids. He denied smoking and ...",
-    "history": "",
-    "labs": "",
-    "expected_diagnosis": "Acute left adrenal infarction",
-    "expected_diagnosis_codes": [],
-    "expected_aliases": [
-      "acute left adrenal infarction"
-    ],
-    "distractors": [
-      "Unspecified adrenocortical insufficiency",
-      "Acute infarction of small intestine",
-      "Acute infarction of large intestine"
-    ]
-  },
-  {
-    "id": "cupcase-11",
-    "source": "CUPCase",
-    "case_style": "narrative",
-    "age": "36",
+    "age": "30",
     "sex": "female",
-    "symptoms": "A 36-year-old nulliparous Nigerian petty trader presented at the gynecology outpatient clinic with a painless abdominal mass of 1-year duration. The mass first appeared as a small induration and progressively increased in size. She had menarche at age 14 years, with 3 days of menstruation in a 28-day cycle. There was no history of dysmenorrhea, menorrhagia and bowel or urinary change, and no significant past medical history although she was taking the antihypertensive amlodipine (tablet, 10 mg daily) for hypertension. She had a surgical history of open myomectomy for symptomatic fibroids 3 years prior to presentation. There was no personal or family history of diabetes mellitus, asthma, cancer or sickle cell disease. She defined herself as a social drinker and non-smoker (no history of smoking). The results of a prior ultrasound examination at a different hospital suggested a condition, and based on this scan, she was offered a hysterectomy at that hospital prior to her presentation at our own facility. General and neurological examinations were unremarkable, with a pulse rate of 74 beats per minute, a blood pressure of 130/80 mmHg, and a body temperature of 36.2 °C. Abdominal ...",
+    "symptoms": "Patient information  \nA 30-year-old Persian woman presented weakness, stress, low blood pressure, and low-grade fever. On the tenth day after the onset of the symptoms, she complained of chest pain, cough, and tachycardia.  \nClinical findings  \nA chest computerized tomography (CT) scan revealed the presence of unilateral ground-glass opacities . Following gastrointestinal complications, including diarrhea, vomiting, and 78% oxygen saturation, the patient was hospitalized and moved to the intensive care unit for invasive ventilation. She was treated with hydroxychloroquine, antiviral therapy (remdesivir), and tocilizumab. After partial recovery, the patient was discharged home. However, 30 days after the onset of symptoms, the patient manifested neurological complications . She developed acute weakness in the lower limb, numbness and tingling, loss of touch and vibration sensation in the feet and, a few days later, in the upper limb and the hands. She also developed gait disorder and loss of balance. Subsequently, muscle stretch reflex examination revealed absent deep tendon reflexes in the upper and lower limbs. The patient also showed acute onset of unilateral eyelid ptosis ...",
     "history": "",
     "labs": "",
-    "expected_diagnosis": "Intra-abdominal desmoid-type fibromatosis",
+    "expected_diagnosis": "Guillain-Barré syndrome",
     "expected_diagnosis_codes": [],
     "expected_aliases": [
-      "intra abdominal desmoid type fibromatosis"
-    ],
-    "distractors": [
-      "Lymphoblastic (diffuse) lymphoma, intra-abdominal lymph nodes",
-      "Intra-abdominal and pelvic swelling, mass and lump",
-      "Idiopathic pulmonary fibrosis"
+      "guillain barr  syndrome"
+    ]
+  },
+  {
+    "id": "demo-cupcase-58",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "2",
+    "sex": "female",
+    "symptoms": "A previously healthy 2-year-old Saudi girl was admitted to the hospital due to a 5-day history of high fever (body temperature 38.5–39.5 °C), bilateral leg pain that prevented her from walking, fatigue, generalized erythematous rash, cracked lips, and reduced appetite. Her nutritional history before this episode was appropriate for her age, and she began to share a family diet at the age of 1 year. Her calorie intake was around 90–100 kcal/kg/day. The fluid intake range was (1.5–2 L)/day. Furthermore, she developed skin desquamation on the seventh day of admission on her palms, soles, and genitals (Figs. 1, 2). There was no history of conjunctivitis, neck swelling, upper respiratory symptoms, vomiting, diarrhea, headache, or neurological symptoms. There was no history of coronavirus disease (COVID-19) within the 4 weeks prior to her presentation. She has no previous medical or surgical history and was not on regular medication.\n\nFig. 1 Desquamation of the skin on the right sole Full size image Fig. 2 Desquamation of the skin on the right palm and extending to the dorsal hand involving the fingers Full size image Developmentally, she is up to her age. She kicks a ball, draws a ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Kawasaki Disease (KD)",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "kawasaki disease  kd"
+    ]
+  },
+  {
+    "id": "demo-cupcase-64",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "27",
+    "sex": "male",
+    "symptoms": "The patient was a 27-year-old Persian/Caucasian man with no medical history, who experienced 2 months of abdominal distension and weakness, with concurrent 10 kg unintentional weight loss. He did not mention nausea, vomiting, dysphagia, diarrhoea, cough, dyspnea, night sweats, or chills. He had no gastrointestinal complaints except feeling fullness. The patient was normoglycemic and had no history of hepatitis, jaundice, diabetes, drug abuse, or alcohol use. On presentation, his blood pressure was 120/80 mmHg and his body temperature was 37 °C. Abdominal ascites was apparent, with no icterus or edema. There were no signs of cheilosis, glossitis, lymphadenopathy, or organomegaly on physical examination. Serological tests for viral hepatitis and human immunodeficiency virus (HIV) were negative. Laboratory findings are presented in .\n\nThe patients reticulocyte production index was more than 2.5. The 24-hour urine test detected 250 mg of protein. Color Doppler ultrasonography of abdominal vessels was normal. Abdominal, pelvic, and chest computed tomography (CT) scan showed bilateral pleural effusions and massive ascites. The patient underwent abdominal paracentesis, which revealed a ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Lupus peritonitis",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "lupus peritonitis"
     ]
   }
 ]

@@ -160,16 +160,16 @@ def load_rarebench(per_source: int, rng: random.Random) -> list[dict]:
 
 
 def _parse_age_sex(text: str) -> tuple[str, str]:
+    # Case reports state demographics in the opening sentence ("A 42-year-old
+    # woman..."), so read sex from just the start to avoid stray later pronouns.
+    head = text[:160]
     age = ""
     m = re.search(r"(\d{1,3})[\s-]*year[\s-]*old", text, re.I)
     if m:
         age = m.group(1)
-    sex = ""
-    if re.search(r"\b(man|male|boy|gentleman|he|his)\b", text, re.I):
-        sex = "male"
-    if re.search(r"\b(woman|female|girl|lady|she|her)\b", text, re.I):
-        # if both matched, leave blank rather than guess wrong
-        sex = "" if sex else "female"
+    male = bool(re.search(r"\b(man|male|boy|gentleman)\b", head, re.I))
+    female = bool(re.search(r"\b(woman|female|girl|lady)\b", head, re.I))
+    sex = "male" if male and not female else "female" if female and not male else ""
     return age, sex
 
 
@@ -252,11 +252,18 @@ ADAPTERS = {
     "rarearena": load_rarearena,   # non-commercial: opt-in only
 }
 
-# Well-known rare diseases we prefer to surface in the demo (readable & teachable)
+# Well-known rare diseases we prefer to surface in the demo (readable & teachable).
+# These are recognizable names a general audience / judges will know, and they
+# occur in the CUPCase "clinically uncommon" case reports.
 DEMO_KEYWORDS = [
-    "fabry", "wilson", "pompe", "porphyria", "gaucher", "marfan",
-    "ehlers", "amyloid", "sarcoid", "behcet", "whipple", "kawasaki",
-    "hemochromatosis", "addison", "cushing", "myasthenia",
+    "fabry", "wilson", "pompe", "porphyria", "gaucher", "marfan", "ehlers",
+    "amyloid", "sarcoid", "behcet", "whipple", "kawasaki", "hemochromatosis",
+    "addison", "cushing", "myasthenia", "guillain", "takotsubo", "lupus",
+    "pheochromocytoma", "granulomatosis", "wegener", "churg", "goodpasture",
+    "histiocytosis", "castleman", "still disease", "vasculitis", "sweet",
+    "acromegaly", "carcinoid", "mastocytosis", "poems", "erdheim", "moyamoya",
+    "dermatomyositis", "giant cell arteritis", "sjogren", "scleroderma",
+    "hemophagocytic", "antiphospholipid", "polyarteritis",
 ]
 
 
@@ -269,26 +276,49 @@ def build_aliases(cases: list[dict]) -> dict[str, list[str]]:
     return {k: sorted(v) for k, v in table.items()}
 
 
-def pick_demo_cases(cases: list[dict], n: int = 6) -> list[dict]:
-    """Choose a few readable, recognizable cases for the UI dropdown / video."""
-    narrative = [c for c in cases if c["case_style"] == "narrative"]
-    pool = narrative or cases
-    # prefer cases whose diagnosis mentions a famous rare disease
-    preferred = [c for c in pool
-                 if any(k in c["expected_diagnosis"].lower() for k in DEMO_KEYWORDS)]
-    chosen = preferred[:n]
-    for c in pool:
-        if len(chosen) >= n:
+def _trim(case: dict, limit: int = 1200) -> dict:
+    d = dict(case)
+    if len(d["symptoms"]) > limit:
+        d["symptoms"] = d["symptoms"][:limit].rsplit(" ", 1)[0] + " ..."
+    return d
+
+
+def curate_demo_cases(rng: random.Random, n: int = 8, fallback: list[dict] | None = None) -> list[dict]:
+    """Scan a LARGE pool of CUPCase reports for recognizable rare diseases.
+
+    The eval set is only a small random sample, so it rarely contains famous
+    diseases. For the demo we search a much bigger pool specifically for
+    diagnoses a general audience will recognize (see DEMO_KEYWORDS)."""
+    print("Curating recognizable demo cases from a larger CUPCase pool...")
+    rows = _fetch_rows(CUPCASE_ROWS, want=250, rng=rng)  # fetches up to ~1.5k rows
+    picked: dict[str, dict] = {}   # keyed by diagnosis so we get variety
+    for i, row in enumerate(rows):
+        dx = (row.get("correct_diagnosis") or "").strip().rstrip(".")
+        text = (row.get("clean_case_presentation") or "").strip()
+        if not dx or len(text) < 120:
+            continue
+        if not any(k in dx.lower() for k in DEMO_KEYWORDS):
+            continue
+        if dx.lower() in picked:
+            continue
+        age, sex = _parse_age_sex(text)
+        picked[dx.lower()] = _trim({
+            "id": f"demo-cupcase-{i}", "source": "CUPCase", "case_style": "narrative",
+            "age": age, "sex": sex, "symptoms": text, "history": "", "labs": "",
+            "expected_diagnosis": dx, "expected_diagnosis_codes": [],
+            "expected_aliases": sorted({_normalize(dx)}),
+        })
+        if len(picked) >= n:
             break
-        if c not in chosen:
-            chosen.append(c)
-    # trim long narratives for a tidy demo form
-    demo = []
-    for c in chosen:
-        d = dict(c)
-        if len(d["symptoms"]) > 1200:
-            d["symptoms"] = d["symptoms"][:1200].rsplit(" ", 1)[0] + " ..."
-        demo.append(d)
+    demo = list(picked.values())
+    # top up from the eval set if we somehow found too few recognizable ones
+    if len(demo) < n and fallback:
+        for c in fallback:
+            if len(demo) >= n:
+                break
+            if c["case_style"] == "narrative" and c["expected_diagnosis"].lower() not in picked:
+                demo.append(_trim(c))
+    print(f"  {len(demo)} demo cases: " + ", ".join(c["expected_diagnosis"] for c in demo))
     return demo
 
 
@@ -328,8 +358,9 @@ def main() -> None:
     if not non_commercial:
         (DATA_DIR / "aliases.json").write_text(
             json.dumps(build_aliases(all_cases), ensure_ascii=False, indent=2))
+        demo = curate_demo_cases(rng, n=8, fallback=all_cases)
         (DATA_DIR / "demo_cases.json").write_text(
-            json.dumps(pick_demo_cases(all_cases), ensure_ascii=False, indent=2))
+            json.dumps(demo, ensure_ascii=False, indent=2))
 
     # Summary
     diseases = {c["expected_diagnosis"] for c in all_cases}
