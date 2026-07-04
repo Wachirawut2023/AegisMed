@@ -1,0 +1,10 @@
+# Run AegisMed with one command:  docker compose up --build
+# Make sure you created your .env file first:  cp .env.example .env
+services:
+  aegismed:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - path: .env
+        required: false   # runs in demo mode if you have no .env yet

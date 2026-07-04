@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AegisMed — Rare Disease Diagnostic Board</title>
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --card: #ffffff;
+    --ink: #1c2733;
+    --muted: #5b6b7c;
+    --accent: #0e6e6b;
+    --accent-soft: #e2f2f1;
+    --warn-bg: #fdf3e3;
+    --warn-ink: #7a5410;
+    --border: #dde4ec;
+    --danger: #a33030;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #131a22;
+      --card: #1c2531;
+      --ink: #e8edf3;
+      --muted: #9fb0c1;
+      --accent: #4cc4bd;
+      --accent-soft: #123734;
+      --warn-bg: #3a2f14;
+      --warn-ink: #eecf8a;
+      --border: #2c3947;
+      --danger: #e28c8c;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 64px; }
+  header { text-align: center; margin-bottom: 20px; }
+  header h1 { margin: 0; font-size: 1.9rem; letter-spacing: .5px; }
+  header h1 .shield { color: var(--accent); }
+  header p { color: var(--muted); margin: 6px 0 0; }
+  .disclaimer {
+    background: var(--warn-bg); color: var(--warn-ink);
+    border-radius: 10px; padding: 10px 14px; font-size: .85rem; margin: 16px 0;
+  }
+  .card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; margin-bottom: 18px;
+  }
+  label { display: block; font-weight: 600; font-size: .88rem; margin: 12px 0 4px; }
+  input, select, textarea {
+    width: 100%; padding: 9px 11px; border: 1px solid var(--border);
+    border-radius: 8px; background: var(--bg); color: var(--ink);
+    font: inherit; resize: vertical;
+  }
+  textarea { min-height: 74px; }
+  .row { display: flex; gap: 14px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 140px; }
+  .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+  button {
+    font: inherit; font-weight: 600; border: none; border-radius: 9px;
+    padding: 11px 20px; cursor: pointer;
+  }
+  .primary { background: var(--accent); color: #fff; }
+  .primary:disabled { opacity: .55; cursor: wait; }
+  .ghost { background: var(--accent-soft); color: var(--accent); }
+  .status { color: var(--muted); font-size: .9rem; margin-top: 12px; }
+  .error { color: var(--danger); font-weight: 600; }
+  .demo-banner {
+    background: var(--accent-soft); color: var(--accent);
+    border-radius: 10px; padding: 10px 14px; font-size: .85rem; margin-bottom: 14px;
+  }
+  .specialists { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+  .spec-card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .spec-card h3 { margin: 0 0 8px; font-size: 1rem; color: var(--accent); }
+  .opinion { font-size: .86rem; white-space: normal; }
+  .synthesis { border: 2px solid var(--accent); }
+  .synthesis h2 { margin-top: 0; }
+  .hidden { display: none; }
+  .spinner {
+    display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+    border: 2px solid var(--accent); border-top-color: transparent;
+    animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="shield">🛡</span> AegisMed</h1>
+    <p>A virtual board of AI specialist physicians — built to help doctors catch rare diseases sooner.</p>
+  </header>
+
+  <div class="disclaimer">
+    ⚠️ Clinical decision-support prototype for licensed physicians. Not medical advice.
+    All output must be verified by a qualified clinician.
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="age">Age</label>
+        <input id="age" placeholder="e.g. 24">
+      </div>
+      <div>
+        <label for="sex">Sex</label>
+        <select id="sex">
+          <option value="">—</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
+    </div>
+    <label for="symptoms">Presenting symptoms *</label>
+    <textarea id="symptoms" placeholder="Describe the patient's symptoms…"></textarea>
+    <label for="history">Medical &amp; family history</label>
+    <textarea id="history" placeholder="Past illnesses, medications, family history…"></textarea>
+    <label for="labs">Labs / investigations</label>
+    <textarea id="labs" placeholder="Lab results, imaging, ECG…"></textarea>
+
+    <div class="actions">
+      <button class="primary" id="run">Convene the board</button>
+      <button class="ghost" id="example">Load example case</button>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div id="results" class="hidden">
+    <div id="demoBanner" class="demo-banner hidden"></div>
+
+    <div class="card synthesis">
+      <h2>🩺 Board conclusion</h2>
+      <div class="opinion" id="synthesis"></div>
+    </div>
+
+    <h2 style="margin:22px 0 12px;">Specialist opinions</h2>
+    <div class="specialists" id="specialists"></div>
+  </div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+
+// Tiny formatter: turns the model's **bold** and line breaks into HTML, safely.
+function renderText(text) {
+  const escaped = text
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+  return escaped
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>");
+}
+
+$("example").addEventListener("click", async () => {
+  const res = await fetch("/api/example-case");
+  const c = await res.json();
+  $("age").value = c.age; $("sex").value = c.sex;
+  $("symptoms").value = c.symptoms; $("history").value = c.history; $("labs").value = c.labs;
+  $("status").textContent = "Example case loaded — press “Convene the board”.";
+});
+
+$("run").addEventListener("click", async () => {
+  const symptoms = $("symptoms").value.trim();
+  if (symptoms.length < 10) {
+    $("status").innerHTML = '<span class="error">Please describe the symptoms (at least a sentence).</span>';
+    return;
+  }
+  $("run").disabled = true;
+  $("status").innerHTML = '<span class="spinner"></span>Five specialists are reviewing the case… this can take up to a minute.';
+  $("results").classList.add("hidden");
+
+  try {
+    const res = await fetch("/api/diagnose", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        age: $("age").value.trim(),
+        sex: $("sex").value,
+        symptoms,
+        history: $("history").value.trim(),
+        labs: $("labs").value.trim(),
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || ("Server error " + res.status));
+    }
+    const data = await res.json();
+
+    $("demoBanner").classList.toggle("hidden", !data.demo_mode);
+    $("demoBanner").textContent = data.demo_banner || "";
+    $("synthesis").innerHTML = renderText(data.synthesis);
+    $("specialists").innerHTML = data.specialist_opinions.map(s =>
+      `<div class="spec-card"><h3>${s.specialty}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
+    ).join("");
+
+    $("results").classList.remove("hidden");
+    $("status").textContent = "";
+  } catch (e) {
+    $("status").innerHTML = '<span class="error">' + e.message + "</span>";
+  } finally {
+    $("run").disabled = false;
+  }
+});
+</script>
+</body>
+</html>
