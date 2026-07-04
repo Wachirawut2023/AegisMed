@@ -35,3 +35,14 @@ def demo_mode() -> bool:
     if setting == "false":
         return False
     return not FIREWORKS_API_KEY
+
+
+def specialist_selection() -> str:
+    """How many specialists to convene per case.
+
+    SPECIALIST_SELECTION=relevant -> run only the specialists the router picks
+                                     as relevant (the default; saves model calls)
+    SPECIALIST_SELECTION=all      -> always run the full board (e.g. for demos)
+    """
+    setting = os.getenv("SPECIALIST_SELECTION", "relevant").strip().lower()
+    return "all" if setting == "all" else "relevant"

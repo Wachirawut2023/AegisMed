@@ -166,6 +166,7 @@
     </details>
 
     <h2 style="margin:22px 0 12px;">Specialist opinions</h2>
+    <p id="routingNote" style="color:var(--muted);font-size:.85rem;margin:-6px 0 12px;"></p>
     <div class="specialists" id="specialists"></div>
   </div>
 </div>
@@ -300,6 +301,7 @@ async function runDiagnosis(clarifications) {
     $("synthesis").innerHTML = renderText(data.synthesis);
     renderReferences(data.references || []);
     renderEvidence(data.evidence || {});
+    renderRouting(data.routing || null);
     $("specialists").innerHTML = data.specialist_opinions.map(s =>
       `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
     ).join("");
@@ -331,6 +333,17 @@ function renderReferences(refs) {
       <strong>${escapeHtml(r.diagnosis)}</strong><br>
       <span style="font-size:.85rem;">${linkList(r.links)}</span>
     </div>`).join("");
+}
+
+function renderRouting(r) {
+  const el = $("routingNote");
+  if (!r) { el.textContent = ""; return; }
+  const sel = (r.selected_specialties || []).length, tot = r.total_specialties || sel;
+  let msg = `🧠 Smart routing consulted ${sel} of ${tot} specialists`;
+  if ((r.skipped_specialties || []).length) {
+    msg += ` (skipped: ${r.skipped_specialties.join(", ")})`;
+  }
+  el.textContent = msg;
 }
 
 function renderEvidence(ev) {

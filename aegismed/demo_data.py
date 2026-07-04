@@ -41,6 +41,15 @@ DEMO_RETRIEVAL_CANDIDATES = [
     "Hereditary sensory and autonomic neuropathy",
     "Amyloidosis",
 ]
+# Which specialists the router deems relevant for the Fabry example — so demo
+# mode visibly shows smart routing (4 of 7 convened; Endocrinology and
+# Hematology-Oncology are skipped as not relevant).
+DEMO_RETRIEVAL_SPECIALTIES = [
+    "Cardiology",
+    "Neurology",
+    "Medical Genetics",
+    "Immunology & Rheumatology",
+]
 
 # The example patient case shown by the "Load example case" button in the UI.
 EXAMPLE_CASE = {

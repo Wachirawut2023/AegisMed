@@ -102,6 +102,19 @@ python eval/run_eval.py                    # intake + board (default)
 Running both is a nice experiment for your write-up: it shows whether the
 intake step actually improves diagnostic accuracy.
 
+### Cost note — smart routing
+
+By default AegisMed convenes only the specialists relevant to each case, so eval
+runs are cheaper than the full 7-specialist board. To compare accuracy at full
+board vs smart routing, set the environment variable before running:
+
+```bash
+SPECIALIST_SELECTION=all python eval/run_eval.py     # full board
+python eval/run_eval.py                               # smart routing (default)
+```
+
+If accuracy holds while calls drop, that's a strong efficiency result for your pitch.
+
 ## How "getting it right" is judged
 
 The scorer marks a **hit** if the correct diagnosis — or any accepted synonym

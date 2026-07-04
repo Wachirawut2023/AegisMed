@@ -20,6 +20,29 @@ DISCLAIMER = (
     "must always be verified by a qualified clinician."
 )
 
+# Smart-routing safeguards: always keep the rare-disease advocate on the board,
+# and never convene fewer than this many specialists.
+_ALWAYS_INCLUDE = {"Medical Genetics"}
+_MIN_SPECIALISTS = 2
+
+
+def _select_specialists(router_specialties: list[str]) -> list[str]:
+    """Decide which specialists to convene, preserving roster order.
+
+    - SPECIALIST_SELECTION=all -> the full board (the demo/max-recall toggle).
+    - otherwise -> the router's picks plus the always-include core; but if that
+      leaves too few (or the router returned nothing / failed), fall back to the
+      full board so cost savings never cost us a diagnosis (fail-open).
+    """
+    everyone = list(SPECIALISTS)
+    if config.specialist_selection() == "all":
+        return everyone
+    chosen = set(router_specialties) | _ALWAYS_INCLUDE
+    chosen &= set(everyone)  # guard against anything off-roster
+    if len(chosen) < _MIN_SPECIALISTS:
+        return everyone
+    return [name for name in everyone if name in chosen]
+
 
 def _format_case(
     age: str, sex: str, symptoms: str, history: str, labs: str,
@@ -55,8 +78,9 @@ async def diagnose(
     )
     grounded_case = case_text + ("\n\n" + evidence["dossier"] if evidence["dossier"] else "")
 
-    # Step 1: all specialists review the grounded case in parallel.
-    names = list(SPECIALISTS)
+    # Step 1: convene only the relevant specialists (smart routing), in parallel.
+    names = _select_specialists(evidence.get("relevant_specialties", []))
+    skipped = [n for n in SPECIALISTS if n not in names]
     opinions = await asyncio.gather(
         *(
             llm.chat(SPECIALISTS[name], grounded_case, agent_name=name)
@@ -91,6 +115,11 @@ async def diagnose(
         "demo_banner": DEMO_BANNER if config.demo_mode() else "",
         "evidence": {"phenotypes": evidence["phenotypes"], "candidates": evidence["candidates"]},
         "references": references,
+        "routing": {
+            "selected_specialties": names,
+            "skipped_specialties": skipped,
+            "total_specialties": len(SPECIALISTS),
+        },
         "specialist_opinions": specialist_opinions,
         "synthesis": synthesis,
     }
