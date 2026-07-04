@@ -130,6 +130,30 @@ DEMO_SPECIALIST_OPINIONS: dict[str, str] = {
         "**Suggested tests / next steps:** No infectious workup needed now; "
         "support enzyme/genetic testing proposed by the board."
     ),
+    "Endocrinology & Metabolism": (
+        "**Domain relevance:** low. Fabry is a metabolic storage disease, but its "
+        "management is not endocrine and there are no axis-specific findings.\n\n"
+        "**Key findings (my specialty's view):** No pituitary, adrenal, thyroid, "
+        "calcium, or glucose abnormalities are reported.\n\n"
+        "**Possible diagnoses (common → rare):** Nothing endocrine fits; I will "
+        "not manufacture a differential where the data do not support one.\n\n"
+        "**Rare diseases to consider:** None from my field — though I note Fabry "
+        "is itself an inborn error of metabolism, better owned by Genetics.\n\n"
+        "**Red flags:** None endocrine.\n\n"
+        "**Suggested tests / next steps:** Defer to the enzyme/genetic workup."
+    ),
+    "Hematology-Oncology": (
+        "**Domain relevance:** none. No cytopenias, masses, lymphadenopathy, or "
+        "paraneoplastic features are described.\n\n"
+        "**Key findings (my specialty's view):** CBC is normal; nothing suggests "
+        "malignancy or a clotting/bleeding disorder.\n\n"
+        "**Possible diagnoses (common → rare):** No oncologic or haematologic "
+        "diagnosis is supported by this case.\n\n"
+        "**Rare diseases to consider:** None that fit.\n\n"
+        "**Red flags:** None oncologic.\n\n"
+        "**Suggested tests / next steps:** Support the genetic workup; no "
+        "haematology-oncology evaluation is indicated now."
+    ),
 }
 
 DEMO_SYNTHESIS = (
@@ -147,15 +171,17 @@ DEMO_SYNTHESIS = (
     "the pain crises but normal inflammatory markers and fixed skin lesions "
     "argue against it.\n\n"
     "**Where the specialists agree:** Neurology, Genetics, and Cardiology "
-    "independently converged on Fabry disease; Immunology and Infectious "
-    "Disease each ruled their own fields out and deferred to a systemic "
-    "inherited disease.\n\n"
+    "independently converged on Fabry disease; Immunology, Infectious Disease, "
+    "Endocrinology, and Hematology-Oncology each found nothing in their own "
+    "domains and deferred to a systemic inherited disease.\n\n"
     "**Where they disagree:** Only on emphasis — Cardiology wants imaging "
     "confirmation of LVH before anchoring; Genetics considers the clinical "
     "picture already near-diagnostic.\n\n"
     "**Single most valuable next test:** Alpha-galactosidase A enzyme activity "
     "(dried blood spot) — cheap, fast, and in a male patient a low level is "
     "essentially diagnostic; confirm with GLA gene sequencing.\n\n"
+    "**Immediate safety actions:** Baseline renal function and urine protein "
+    "quantification, and a cardiology review of the LVH; none emergent today.\n\n"
     "**Do-not-miss warning:** Untreated Fabry disease leads to renal failure, "
     "stroke, and cardiac death in mid-adulthood — and disease-specific therapy "
     "exists. This patient has already carried the wrong label ('growing pains') "

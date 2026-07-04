@@ -17,7 +17,7 @@ cooking: the model runs on Fireworks' AMD servers, not on your laptop.
 **System prompt.** A standing instruction given to the LLM before the real
 question, e.g. *"You are a board-certified neurologist…"*. The same model
 behaves very differently depending on this instruction. This is how one model
-becomes five different specialists.
+becomes seven different specialists.
 
 **Agent.** In this project: **one LLM call with a specific role and job**.
 Nothing mystical. Our "cardiologist agent" = Gemma + cardiologist system
@@ -37,8 +37,8 @@ flowchart TD
     Q -->|yes| U
     U -->|4. answers added to case| S
     Q -->|no / after answers| O[Orchestrator<br>aegismed/orchestrator.py]
-    O -->|5. same case, five roles,<br>all at the same time| F[🔥 Fireworks AI API<br>Gemma on AMD hardware]
-    F -->|6. five written opinions| O
+    O -->|5. same case, seven roles,<br>all at the same time| F[🔥 Fireworks AI API<br>Gemma on AMD hardware]
+    F -->|6. seven written opinions| O
     O -->|7. all opinions| F2[🔥 Synthesis call<br>the board chair]
     F2 -->|8. ranked differential| O
     O -->|9. one JSON response| U2[🖥 Browser renders<br>the board report]
@@ -55,19 +55,19 @@ You answer what you can, then the board convenes with the richer case. You can
 also **Skip** straight to the diagnosis. If the case is already detailed, the
 intake agent asks nothing and the board runs immediately.
 
-After intake, a "board run" is **six LLM calls**: five specialists in parallel,
-then one synthesis call that reads their answers.
+After intake, a "board run" is **eight LLM calls**: seven specialists in
+parallel, then one synthesis call that reads their answers.
 
 ## Why multiple agents instead of one big question?
 
-You *could* ask one model "act as five doctors." In practice separate calls
+You *could* ask one model "act as seven doctors." In practice separate calls
 work better because:
 
 1. **Independence.** Real second opinions are valuable because they're formed
    separately. Five independent calls can't anchor on each other's first guess.
 2. **Focus.** Each call spends its full attention on one specialty's view.
-3. **Speed.** The five calls run *simultaneously* (that's the
-   `asyncio.gather` in `orchestrator.py`), so five opinions take the time of one.
+3. **Speed.** The seven calls run *simultaneously* (that's the
+   `asyncio.gather` in `orchestrator.py`), so seven opinions take the time of one.
 4. **A great demo story.** Judges can see each specialist's reasoning — it makes
    the product feel like a real case conference.
 
@@ -78,8 +78,8 @@ work better because:
 | `aegismed/config.py` | Reads your settings (`.env` file): API key, model name, demo mode. |
 | `aegismed/llm.py` | The **only** place that talks to the AI. One function: give it a system prompt + question, get text back. Demo mode short-circuits here. |
 | `aegismed/intake.py` | The intake agent: reviews the case and returns clarifying questions (as JSON) before the board meets. |
-| `aegismed/specialists.py` | The five specialist personas (system prompts) + the board-chair prompt. **This is where the product's "intelligence" lives — editing these prompts is how you improve AegisMed.** |
-| `aegismed/orchestrator.py` | Runs the meeting: formats the case, fires all five specialists at once, then asks the chair to synthesize. |
+| `aegismed/specialists.py` | The seven specialist personas (system prompts) + the board-chair prompt. **This is where the product's "intelligence" lives — editing these prompts is how you improve AegisMed.** |
+| `aegismed/orchestrator.py` | Runs the meeting: formats the case, fires all seven specialists at once, then asks the chair to synthesize. |
 | `aegismed/main.py` | The web server. Serves the page, exposes `/api/intake` and `/api/diagnose`, validates input. |
 | `static/index.html` | Everything the user sees. Plain HTML/JS — no framework to learn. |
 | `aegismed/demo_data.py` | Hand-written sample output so the app works with no API key. |

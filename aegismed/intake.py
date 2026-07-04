@@ -18,7 +18,7 @@ from . import config, llm
 from .orchestrator import _format_case
 
 INTAKE_PROMPT = """
-You are the intake clinician for a rare-disease diagnostic board. Before five
+You are the intake clinician for a rare-disease diagnostic board. Before the
 specialists review this case, your job is to spot the MISSING information that
 would most change the differential diagnosis, and ask the treating physician for it.
 

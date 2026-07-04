@@ -50,7 +50,7 @@ July 9 evening** — the last two days belong to the demo, video, and submission
 ### Thu July 10 — the pitch
 - [ ] Make the **cover image** (1200×675 works well)
 - [ ] Build the **slide deck** (~7 slides: problem → who suffers → the idea → live demo shots → tech/AMD stack → market → roadmap)
-- [ ] Record the **video**: hook with the 5–7-year diagnosis statistic → show the example case running live → explain the five agents → the AMD/Gemma stack → the vision. Screen recording + voice-over is enough.
+- [ ] Record the **video**: hook with the 5–7-year diagnosis statistic → show the example case running live → explain the seven specialist agents → the AMD/Gemma stack → the vision. Screen recording + voice-over is enough.
 - [ ] Draft the short & long descriptions for the lablab.ai form
 
 ### Fri July 11 — submit EARLY (deadline 11:00 PM Thailand)

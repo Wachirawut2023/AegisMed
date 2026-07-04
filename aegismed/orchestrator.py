@@ -2,7 +2,7 @@
 
 Flow:
   1. Turn the form fields into one readable case description.
-  2. Ask all five specialists AT THE SAME TIME (asyncio.gather), because none
+  2. Ask all specialists AT THE SAME TIME (asyncio.gather), because none
      of them needs to see another's answer — just like independent consults.
   3. Hand every opinion to the synthesis agent (the "board chair"), which
      produces the final ranked differential diagnosis for the physician.
@@ -58,10 +58,16 @@ async def diagnose(
         for name, text in zip(names, opinions)
     ]
 
-    # Step 2: the board chair merges the five opinions into one briefing.
-    synthesis_input = case_text + "\n\nSPECIALIST OPINIONS\n\n" + "\n\n".join(
-        f"--- {item['specialty']} ---\n{item['opinion']}"
-        for item in specialist_opinions
+    # Step 2: the board chair merges the specialists' opinions into one briefing.
+    # The roster is passed in so the chair adapts if specialties are added/removed.
+    synthesis_input = (
+        case_text
+        + f"\nBOARD ROSTER: {', '.join(names)}\n"
+        + "\nSPECIALIST OPINIONS\n\n"
+        + "\n\n".join(
+            f"--- {item['specialty']} ---\n{item['opinion']}"
+            for item in specialist_opinions
+        )
     )
     synthesis = await llm.chat(SYNTHESIS_PROMPT, synthesis_input, agent_name="synthesis")
 

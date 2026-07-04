@@ -63,7 +63,7 @@ python eval/run_eval.py            # score every case
 python eval/run_eval.py --limit 10 # quick test on 10 cases first
 ```
 
-For each case it runs the full five-specialist board, reads the board's answer,
+For each case it runs the full seven-specialist board, reads the board's answer,
 and checks whether the correct diagnosis (or a known synonym) appears anywhere
 in it. It prints a running tally and writes a report to **`eval/results.md`**:
 

@@ -16,8 +16,8 @@ AegisMed recreates the one thing that reliably catches rare diseases — a **mul
 
 1. The physician enters a patient case (symptoms, history, labs).
 2. An **intake agent** reviews it first and asks for any missing high-value details (timeline, family history, exposures, prior tests) — like a clinician taking a focused history before consulting. The physician answers, or skips.
-3. **Five AI specialist agents** — Cardiology, Neurology, Medical Genetics, Immunology & Rheumatology, Infectious Disease — each analyze the case independently and in parallel, each explicitly hunting for rare diseases in their field.
-4. A **synthesis agent** (the "board chair") merges the five opinions into a ranked differential diagnosis with rare-disease flags, points of agreement/disagreement, the single most valuable next test, and a do-not-miss warning.
+3. **Seven AI specialist agents** — Cardiology, Neurology, Medical Genetics, Immunology & Rheumatology, Infectious Disease, Endocrinology & Metabolism, and Hematology-Oncology — each analyze the case independently and in parallel. Each hunts for rare diseases in its field, but may also say "nothing in my domain" rather than invent a diagnosis.
+4. A **synthesis agent** (the "board chair") merges the opinions into a ranked differential diagnosis with rare-disease flags, points of agreement/disagreement, the single most valuable next test, immediate safety actions, and a do-not-miss warning.
 
 Each agent is the same Gemma model given a different specialist role — cheap to run, easy to extend with more specialties.
 
@@ -30,7 +30,9 @@ flowchart LR
     B --> C3[🧬 Medical Genetics]
     B --> C4[🦠 Immunology &<br>Rheumatology]
     B --> C5[🌡 Infectious Disease]
-    C1 & C2 & C3 & C4 & C5 --> D[🩺 Synthesis agent<br>board chair]
+    B --> C6[⚗️ Endocrinology &<br>Metabolism]
+    B --> C7[🩸 Hematology-<br>Oncology]
+    C1 & C2 & C3 & C4 & C5 & C6 & C7 --> D[🩺 Synthesis agent<br>board chair]
     D --> E[Ranked differential<br>+ rare-disease flags<br>+ next best test]
 ```
 
@@ -108,7 +110,7 @@ aegismed/
   config.py        # settings from .env
   llm.py           # the one place that calls the AI model
   intake.py        # asks clarifying questions before the board meets
-  specialists.py   # the five specialist personas (system prompts)
+  specialists.py   # the seven specialist personas (system prompts)
   orchestrator.py  # runs specialists in parallel + synthesis
   main.py          # FastAPI web server
 static/index.html  # the UI

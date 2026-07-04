@@ -5,7 +5,7 @@ Sat July 11, 4:00 PM UTC (11:00 PM Thailand)** — target ~6 PM Thailand to be s
 
 ## 📋 Basic information
 - [ ] **Project title:** AegisMed
-- [ ] **Short description** (1–2 sentences): e.g. *"A virtual board of AI specialist physicians — five Gemma-powered agents that analyze a patient case in parallel and help doctors catch rare diseases years sooner."*
+- [ ] **Short description** (1–2 sentences): e.g. *"A virtual board of AI specialist physicians — seven Gemma-powered agents that analyze a patient case in parallel and help doctors catch rare diseases years sooner."*
 - [ ] **Long description:** problem (5–7 year diagnostic odyssey), how the multi-agent board works, the AMD/Fireworks/Gemma stack, market vision (reuse README text)
 - [ ] **Technology & category tags:** AMD, Fireworks AI, Gemma, FastAPI, Python, Healthcare, Agents
 
