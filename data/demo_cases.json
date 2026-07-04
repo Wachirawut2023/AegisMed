@@ -1,0 +1,122 @@
+[
+  {
+    "id": "cupcase-8",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "26",
+    "sex": "male",
+    "symptoms": "A 26-year-old Japanese male presented with severe headache and nausea for approximately 3 weeks. He had a prior episode of suspected convulsion of which magnetic resonance imaging (MRI) revealed a cystic nodular lesion measuring approximately 60 mm in diameter, located in the left parietal lobe of the cerebrum. The patient was administered medication, and symptoms were subsequently relieved. However, 12 days later, he experienced worsened symptoms and was transferred and admitted to the emergency department of the University of Miyazaki Hospital. MRI showed a mass of 70 × 53 × 57 mm in the left temporoparietal lobe (Fig. 1 a–c). A solid element with slight hypointensity on T1-weighted and hyperintensity on T2-weighted images along the dura mater was noted. Cystic changes were likely associated with the sanguineous fluid. A peritumoral band with hyperintensity on T2-weighted image was observed at the periphery of the lesion, suggesting an extra-axial lesion . A dural tail sign was also noted on the gadolinium-enhanced T1-weighted image . The lesion appeared to be focally infiltrative to the brain surface, but no apparent connection to the ventricle was observed (Fig. 1 a–c). ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Meningioma",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "meningioma"
+    ],
+    "distractors": [
+      "Hemangioma",
+      "Mumps meningitis",
+      "Benign neoplasm of meninges"
+    ]
+  },
+  {
+    "id": "cupcase-14",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "20",
+    "sex": "male",
+    "symptoms": "A previously healthy 20-year-old southeast Asian–American male presented with 6 weeks of intermittent fevers, nonproductive cough, dry eyes, oral ulcers, rashes, arthritis, and myalgias. The patient’s vitals were temperature of 102°F, heart rate 99 beats per minute, respiratory rate 22 breaths per minute, blood pressure 112/63 mmHg, and oxygen saturation 96% on room air. On physical examination, the patient was not in acute distress, no scleral icterus was noted, extraocular movements were intact, with oral ulcers on the hard palate. The patient did not have evidence of jugular vein distention (JVD), carotid bruits, and no palpable cervical or axillary lymphadenopathy. Cardiac examination found normal rate and rhythm with audible S1 and S2. Lung examination was clear to auscultation bilaterally without rales, rhonchi, or wheezes. The patient’s abdomen was soft, nontender, and nondistended with normoactive bowel sounds. The patient noted papules along lateral digits and tender palmar maculopapular lesions, synovitis of the hands and feet, but no noticeable edema of all extremities. Neurological examination was without focal deficits, and he was alert, awake, and oriented, answering ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Anti-MDA5 positive dermatomyositis",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "anti mda5 positive dermatomyositis"
+    ],
+    "distractors": [
+      "Juvenile dermatomyositis",
+      "Other dermatomyositis with other organ involvement",
+      "Polymyositis"
+    ]
+  },
+  {
+    "id": "cupcase-9",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "",
+    "sex": "",
+    "symptoms": "Methods\nThis case series discusses 16 consecutive patients started on tocilizumab for relapsed or refractory conditions between August 2018 and April 2021, after the establishment of a new hub and spoke model. The central assessing hub was St George’s University Hospitals NHS Foundation Trust, a large tertiary rheumatology center in the south of England.\nA new referral form for tocilizumab was utilized and all cases were discussed in a fortnightly multidisciplinary team meeting. Information was gathered for this analysis retrospectively through these referral forms and electronic patient records, with additional correspondence from referring clinicians and corroboration with patients themselves. The central dispensing pharmacy was at St George’s Hospital, who validated patient numbers and details.\nA total of 16 patients were identified (): 11 female and 5 male, with an average age of 72.4 (range 61–82) years. Seven patients were internal referrals from clinicians at the tertiary center, with the remainder from local district general hospitals.\n Data collection from 16 patients started on tocilizumab\nFull size table\nTocilizumab and steroid dosing\nThe difference between daily ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Giant cell arteritis (GCA)",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "giant cell arteritis  gca"
+    ],
+    "distractors": [
+      "Giant cell arteritis with polymyalgia rheumatica",
+      "Giant cell granuloma, central",
+      "Glaucoma"
+    ]
+  },
+  {
+    "id": "cupcase-1",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "60",
+    "sex": "",
+    "symptoms": "Patient 1 is a 60-year-old Caucasian female with BRAF wild type unknown primary (tumor mutation burden 4 mutations/megabase) who originally presented with a renal mass and had a nephrectomy positive for melanoma. She developed lung disease and was started on pembrolizumab. After 3 months, her lung disease progressed, and she was switched to ipilimumab 3 mg/kg and nivolumab 1 mg/kg for four cycles with concurrent radiotherapy to a dominant lung lesion. Her maintenance nivolumab was halted after 2 months as she required steroids for radiation pneumonitis. She subsequently received anti-PD-1 directed therapy with anti-LAG-3 on a clinical trial, but her disease progressed after two cycles with progressive bilateral pulmonary and pleural based masses, increase in a right pericardial deposit, enlargement of a soft tissue mass adjacent to the spleen and a nodule adjacent to the right kidney with an unchanged lytic lesion within the L3 vertebral body. She received 18 Gy in one fraction of palliative radiation to the L3 spinal lesion 3 days prior to HD IL-2 for pain (day 1). She was then admitted for HD IL-2 and received nine consecutive doses on days 4 through 7. Treatment was held for ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "metastatic melanoma",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "metastatic melanoma"
+    ],
+    "distractors": [
+      "Melanoma in situ",
+      "Malignant melanoma of skin of breast",
+      "Melanoma in situ, unspecified"
+    ]
+  },
+  {
+    "id": "cupcase-7",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "34",
+    "sex": "male",
+    "symptoms": "A 34-year-old Hispanic male with a past medical history of hypertension presented to our hospital with abdominal pain that started the night before admission. The patient reported 10/10 intensity pain. He described his pain as constant, with no specific relieving factors, sharp, located mainly in the left paraumbilical region, and radiating to his left flank. He reported having nausea and three episodes of non-bloody, non-bilious emesis. He stated that his friends gave him crystal meth a day prior to the onset of his symptoms, adding that it was the first time in his life that he had ever taken illicit drugs. He denied fever, chills, cough, chest pain, or shortness of breath. He visited the clinic in our hospital about 5 years ago and was diagnosed with hypertension but was not taking any medications at the time of his emergency department visit. There was no history of any surgeries in the past. He had no history of any allergies to medications or foods. He reported that his father, mother, sister, and brothers were healthy, and all of them lived in Honduras. The patient's social history revealed that he worked as a painter and lived with his wife and kids. He denied smoking and ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Acute left adrenal infarction",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "acute left adrenal infarction"
+    ],
+    "distractors": [
+      "Unspecified adrenocortical insufficiency",
+      "Acute infarction of small intestine",
+      "Acute infarction of large intestine"
+    ]
+  },
+  {
+    "id": "cupcase-11",
+    "source": "CUPCase",
+    "case_style": "narrative",
+    "age": "36",
+    "sex": "female",
+    "symptoms": "A 36-year-old nulliparous Nigerian petty trader presented at the gynecology outpatient clinic with a painless abdominal mass of 1-year duration. The mass first appeared as a small induration and progressively increased in size. She had menarche at age 14 years, with 3 days of menstruation in a 28-day cycle. There was no history of dysmenorrhea, menorrhagia and bowel or urinary change, and no significant past medical history although she was taking the antihypertensive amlodipine (tablet, 10 mg daily) for hypertension. She had a surgical history of open myomectomy for symptomatic fibroids 3 years prior to presentation. There was no personal or family history of diabetes mellitus, asthma, cancer or sickle cell disease. She defined herself as a social drinker and non-smoker (no history of smoking). The results of a prior ultrasound examination at a different hospital suggested a condition, and based on this scan, she was offered a hysterectomy at that hospital prior to her presentation at our own facility. General and neurological examinations were unremarkable, with a pulse rate of 74 beats per minute, a blood pressure of 130/80 mmHg, and a body temperature of 36.2 °C. Abdominal ...",
+    "history": "",
+    "labs": "",
+    "expected_diagnosis": "Intra-abdominal desmoid-type fibromatosis",
+    "expected_diagnosis_codes": [],
+    "expected_aliases": [
+      "intra abdominal desmoid type fibromatosis"
+    ],
+    "distractors": [
+      "Lymphoblastic (diffuse) lymphoma, intra-abdominal lymph nodes",
+      "Intra-abdominal and pelvic swelling, mass and lump",
+      "Idiopathic pulmonary fibrosis"
+    ]
+  }
+]
