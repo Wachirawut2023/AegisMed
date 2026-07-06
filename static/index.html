@@ -86,6 +86,16 @@
     animation: spin .8s linear infinite; vertical-align: -2px; margin-right: 6px;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .print-only { display: none; }
+  @media print {
+    .print-only { display: block; margin-bottom: 14px; font-size: .85rem; }
+    header, #inputCard, #exportBtn, .actions, .status { display: none !important; }
+    :root {
+      --bg: #fff; --card: #fff; --ink: #000; --muted: #444;
+      --accent: #0e6e6b; --accent-soft: #fff; --warn-bg: #fff; --warn-ink: #000;
+      --border: #999; --danger: #a33030;
+    }
+  }
 </style>
 </head>
 <body>
@@ -100,7 +110,7 @@
     All output must be verified by a qualified clinician.
   </div>
 
-  <div class="card">
+  <div class="card" id="inputCard">
     <div class="row">
       <div>
         <label for="age">Age</label>
@@ -145,6 +155,11 @@
 
   <div id="results" class="hidden">
     <div id="demoBanner" class="demo-banner hidden"></div>
+    <div id="printHeader" class="print-only"></div>
+
+    <div class="actions" style="margin-bottom:12px;">
+      <button class="ghost" id="exportBtn">🖨️ Export / print board report</button>
+    </div>
 
     <div class="card synthesis">
       <h2>🩺 Board conclusion</h2>
@@ -160,6 +175,17 @@
       </p>
     </div>
 
+    <div class="card" id="guidelinesCard">
+      <h2>🧭 Clinical practice guideline search</h2>
+      <div id="guidelines"></div>
+      <p style="color:var(--muted);font-size:.8rem;margin-bottom:0;">
+        Live search links to guideline databases and aggregators (NICE, PubMed,
+        TRIP, MedlinePlus, Guideline Central) for each diagnosis — not a specific
+        AI-selected document. Confirm the current guideline version with your
+        institution.
+      </p>
+    </div>
+
     <details class="card">
       <summary style="cursor:pointer;font-weight:600;">🔎 Reference evidence considered by the board</summary>
       <div id="evidence" style="margin-top:12px;"></div>
@@ -168,6 +194,8 @@
     <h2 style="margin:22px 0 12px;">Specialist opinions</h2>
     <p id="routingNote" style="color:var(--muted);font-size:.85rem;margin:-6px 0 12px;"></p>
     <div class="specialists" id="specialists"></div>
+
+    <div id="printFooter" class="print-only"></div>
   </div>
 </div>
 
@@ -300,8 +328,10 @@ async function runDiagnosis(clarifications) {
     $("demoBanner").textContent = data.demo_banner || "";
     $("synthesis").innerHTML = renderText(data.synthesis);
     renderReferences(data.references || []);
+    renderGuidelines(data.guideline_references || []);
     renderEvidence(data.evidence || {});
     renderRouting(data.routing || null);
+    renderPrintHeader(data, readCase());
     $("specialists").innerHTML = data.specialist_opinions.map(s =>
       `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
     ).join("");
@@ -334,6 +364,52 @@ function renderReferences(refs) {
       <span style="font-size:.85rem;">${linkList(r.links)}</span>
     </div>`).join("");
 }
+
+function renderGuidelines(refs) {
+  if (!refs.length) { $("guidelinesCard").classList.add("hidden"); return; }
+  $("guidelinesCard").classList.remove("hidden");
+  $("guidelines").innerHTML = refs.map(r => `
+    <div style="margin-bottom:10px;">
+      <strong>${escapeHtml(r.diagnosis)}</strong><br>
+      <span style="font-size:.85rem;">${linkList(r.links)}</span>
+    </div>`).join("");
+}
+
+// Print-only header/footer: a self-contained report needs the original case
+// (the on-screen results view never redisplays it) plus the disclaimer, since
+// a saved/printed PDF can leave the app's context entirely.
+function renderPrintHeader(data, caseFields) {
+  const when = new Date().toLocaleString();
+  const rows = [
+    ["Age", caseFields.age], ["Sex", caseFields.sex],
+    ["Presenting symptoms", caseFields.symptoms],
+    ["Medical & family history", caseFields.history],
+    ["Labs / investigations", caseFields.labs],
+  ].filter(([, v]) => v).map(([k, v]) => `<strong>${k}:</strong> ${escapeHtml(v)}`).join("<br>");
+  const disclaimer = escapeHtml(data.disclaimer || "");
+  $("printHeader").innerHTML =
+    `<h2 style="margin:0 0 6px;">AegisMed — Board Report</h2>` +
+    `<div>Generated: ${escapeHtml(when)}</div>` +
+    `<div style="margin:6px 0;">${rows}</div>` +
+    `<div>⚠️ ${disclaimer}</div><hr>`;
+  $("printFooter").innerHTML = `<hr><div>⚠️ ${disclaimer}</div>`;
+}
+
+// Collapsed <details> don't reliably print their content across browsers, so
+// force them open just for the print, then restore whatever state they had.
+window.addEventListener("beforeprint", () => {
+  document.querySelectorAll("details").forEach((d) => {
+    d.dataset.wasOpen = d.open ? "1" : "";
+    d.open = true;
+  });
+});
+window.addEventListener("afterprint", () => {
+  document.querySelectorAll("details").forEach((d) => {
+    d.open = d.dataset.wasOpen === "1";
+  });
+});
+
+$("exportBtn").addEventListener("click", () => window.print());
 
 function renderRouting(r) {
   const el = $("routingNote");

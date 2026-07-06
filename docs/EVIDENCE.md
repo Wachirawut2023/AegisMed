@@ -31,6 +31,13 @@ So AegisMed follows one rule: **the AI is never the source of a citation.**
    real because they come from the knowledge base and deterministic search URLs,
    never from the model's memory.
 
+3. **Clinical practice guideline search links**, attached the same way — never
+   asked of the model. For each diagnosis, `aegismed/guidelines.py` builds live
+   search-result links on NICE, PubMed, TRIP Database, MedlinePlus, and
+   Guideline Central. These are *search* pages, not an AI-selected "the
+   guideline for X" — that distinction matters, since we can't guarantee a
+   specific document is current, only that the search itself is real.
+
 ## Evidence that informs the specialists (retrieval)
 
 AegisMed doesn't only cite *after* diagnosing — it gathers evidence *before*, to
@@ -59,6 +66,7 @@ inventing citations. You can see what was retrieved in the app's
 | `data/build_knowledge_base.py` | Builds `data/citations_index.json` — disease name → Orphanet/OMIM codes — from the RareBench disease mapping. Run once. |
 | `data/citations_index.json` | The committed lookup table (~10,700 diseases). |
 | `aegismed/knowledge.py` | Turns a diagnosis name into verified reference links; extracts diagnoses from the board's conclusion. |
+| `aegismed/guidelines.py` | Turns a diagnosis name into live clinical practice guideline search links (NICE, PubMed, TRIP, MedlinePlus, Guideline Central). |
 | `aegismed/retrieval.py` | The retrieval agent + evidence dossier handed to the specialists. |
 
 ## Building / refreshing the knowledge base

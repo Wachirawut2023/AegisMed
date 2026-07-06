@@ -10,7 +10,7 @@ Flow:
 
 import asyncio
 
-from . import config, knowledge, llm
+from . import config, guidelines, knowledge, llm
 from .demo_data import DEMO_BANNER
 from .specialists import SPECIALISTS, SYNTHESIS_PROMPT
 
@@ -108,6 +108,7 @@ async def diagnose(
     # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
     diagnoses = knowledge.extract_diagnoses(synthesis)
     references = knowledge.references_for(diagnoses)
+    guideline_references = guidelines.guidelines_for(diagnoses)
 
     return {
         "disclaimer": DISCLAIMER,
@@ -115,6 +116,7 @@ async def diagnose(
         "demo_banner": DEMO_BANNER if config.demo_mode() else "",
         "evidence": {"phenotypes": evidence["phenotypes"], "candidates": evidence["candidates"]},
         "references": references,
+        "guideline_references": guideline_references,
         "routing": {
             "selected_specialties": names,
             "skipped_specialties": skipped,
