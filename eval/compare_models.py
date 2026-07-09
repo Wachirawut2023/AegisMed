@@ -148,7 +148,12 @@ def parse_results_file(path: Path) -> dict:
         # Parse per-case table for hits/misses
         if "| Case | Source | Correct diagnosis | Found? |" in line:
             in_source_table = False
-        if not in_source_table and line.startswith("| ") and "Case" not in line and "---" not in line:
+        # "Case" not in line was meant to skip only the header row above, but
+        # it also matched (and silently dropped) every CUPCase-sourced data
+        # row, since "CUPCase" contains "Case" as a substring. Check for the
+        # literal header prefix instead.
+        if (not in_source_table and line.startswith("| ")
+                and not line.startswith("| Case ") and "---" not in line):
             cells = [c.strip() for c in line.split("|")[1:-1]]
             if len(cells) == 4:
                 data["cases"].append({

@@ -4,22 +4,30 @@
 
 | Model | Accuracy |
 |---|---|
-| gemma3_base | 0% |
-| gemma3_tuned | 0% |
+| baseline | 76% |
+| tuned | 76% |
 
 ## Per-Source Breakdown
 
-| Source | gemma3_base | gemma3_tuned |
+| Source | baseline | tuned |
 |---|---||---|
-| CUPCase | 0/15 | 0/15 |
-| RareBench/HMS | 0/15 | 0/15 |
-| RareBench/LIRICAL | 0/15 | 0/15 |
-| RareBench/MME | 0/15 | 0/15 |
-| RareBench/RAMEDIS | 0/15 | 0/15 |
+| CUPCase | 3/5 | 4/5 |
+| RareBench/HMS | 4/5 | 3/5 |
+| RareBench/LIRICAL | 2/2 | 2/2 |
+| RareBench/MME | 2/4 | 2/4 |
+| RareBench/RAMEDIS | 5/5 | 5/5 |
 
 ## Case-by-case wins
 
-- Both correct: 0
-- Only gemma3_base: 0
-- Only gemma3_tuned: 0
-- Both missed: 60
+- Both correct: 15
+- Only baseline: 1
+- Only tuned: 1
+- Both missed: 4
+
+### Cases baseline caught but tuned missed
+
+- rarebench-hms-0: Vasculitis, autoinflammation, immunodeficiency, and hematologic defects syndrome
+
+### Cases tuned caught but baseline missed
+
+- cupcase-1: metastatic melanoma
