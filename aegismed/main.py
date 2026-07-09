@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from . import __version__, cases, config, intake, knowledge, llm, orchestrator
@@ -177,6 +177,41 @@ async def diagnose(case: PatientCase) -> dict:
         )
     except llm.LLMError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err
+
+
+@app.post(
+    "/api/diagnose/stream",
+    tags=["diagnosis"],
+    summary="Convene the board (streaming)",
+    description=(
+        "Same as /api/diagnose, but streams progress via Server-Sent Events "
+        "as each specialist finishes, so the UI isn't a blank spinner for the "
+        "full round-trip. Each line is `data: <json>\\n\\n`; events are "
+        "{event: specialist_done|synthesis_done|error} while running, and a "
+        "final {event: final, data: {...same shape as /api/diagnose...}} once done."
+    ),
+)
+async def diagnose_stream(case: PatientCase) -> StreamingResponse:
+    async def events():
+        try:
+            async for event in orchestrator.diagnose_stream(
+                age=case.age,
+                sex=case.sex,
+                symptoms=case.symptoms,
+                history=case.history,
+                labs=case.labs,
+                clarifications=case.clarifications,
+                region=case.region,
+            ):
+                yield f"data: {json.dumps(event)}\n\n"
+        except llm.LLMError as err:
+            yield f"data: {json.dumps({'event': 'error', 'message': str(err)})}\n\n"
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache"},
+    )
 
 
 @app.post(

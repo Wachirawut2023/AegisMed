@@ -415,44 +415,48 @@ function collectClarifications() {
 $("intakeContinue").addEventListener("click", () => runDiagnosis(collectClarifications()));
 $("intakeSkip").addEventListener("click", () => runDiagnosis(""));
 
-// PHASE 2 — convene the full specialist board (optionally with clarifications).
-async function runDiagnosis(clarifications) {
-  $("intake").classList.add("hidden");
-  $("run").disabled = true;
-  $("status").innerHTML = '<span class="spinner"></span>The specialist board is reviewing the case… this can take up to a minute.';
-  $("results").classList.add("hidden");
-
-  try {
-    const res = await fetch("/api/diagnose", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...readCase(), clarifications }),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || ("Server error " + res.status));
-    }
-    const data = await res.json();
-
-    $("demoBanner").classList.toggle("hidden", !data.demo_mode);
-    $("demoBanner").textContent = data.demo_banner || "";
-    $("synthesis").innerHTML = renderText(data.synthesis);
-    renderReferences(data.references || []);
-    renderGuidelines(data.guideline_references || []);
-    renderEvidence(data.evidence || {});
-    renderRouting(data.routing || null);
-    renderPrintHeader(data, readCase());
-    $("specialists").innerHTML = data.specialist_opinions.map(s =>
-      `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
-    ).join("");
-
-    $("results").classList.remove("hidden");
-    $("status").textContent = "";
-  } catch (e) {
-    $("status").innerHTML = '<span class="error">' + e.message + "</span>";
-  } finally {
-    $("run").disabled = false;
+// Post a case to a Server-Sent-Events endpoint and read it incrementally.
+// Each SSE line is `data: <json>\n\n`; every parsed event is handed to
+// onEvent as it arrives, and the {event: "final", data: {...}} payload is
+// returned once the stream ends. Throws on {event: "error"} or a non-OK
+// response, matching the plain-fetch error contract used elsewhere here.
+async function fetchDiagnosisStream(endpoint, body, onEvent) {
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || ("Server error " + res.status));
   }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalData = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    let sep;
+    while ((sep = buffer.indexOf("\n\n")) !== -1) {
+      const rawEvent = buffer.slice(0, sep);
+      buffer = buffer.slice(sep + 2);
+      const dataLine = rawEvent.split("\n").find(l => l.startsWith("data:"));
+      if (!dataLine) continue;
+
+      const event = JSON.parse(dataLine.slice(5).trim());
+      if (event.event === "error") throw new Error(event.message);
+      if (event.event === "final") { finalData = event.data; continue; }
+      onEvent(event);
+    }
+  }
+
+  if (!finalData) throw new Error("The board's response stream ended unexpectedly.");
+  return finalData;
 }
 
 function escapeHtml(t) {
@@ -608,8 +612,9 @@ function renderComparison(match) {
   $("comparison").innerHTML = html;
 }
 
-// Override runDiagnosis to support teaching mode
-const originalRunDiagnosis = runDiagnosis;
+// PHASE 2 — convene the full specialist board (optionally with clarifications).
+// Plain diagnosis streams progress via SSE; teaching mode stays on the
+// blocking endpoint (it needs the extra server-side diagnosis-match compute).
 async function runDiagnosis(clarifications) {
   const isTeaching = $("teachingMode").checked;
   const expectedDiagnosis = $("expectedDiagnosis").value.trim();
@@ -621,24 +626,35 @@ async function runDiagnosis(clarifications) {
 
   $("intake").classList.add("hidden");
   $("run").disabled = true;
-  $("status").innerHTML = '<span class="spinner"></span>The specialist board is reviewing the case… this can take up to a minute.';
+  $("status").innerHTML = '<span class="spinner"></span>The specialist board is reviewing the case…';
   $("results").classList.add("hidden");
 
   try {
-    const endpoint = isTeaching ? "/api/teaching/case" : "/api/diagnose";
     const body = { ...readCase(), clarifications };
-    if (isTeaching) body.expected_diagnosis = expectedDiagnosis;
+    let data;
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.detail || ("Server error " + res.status));
+    if (isTeaching) {
+      body.expected_diagnosis = expectedDiagnosis;
+      const res = await fetch("/api/teaching/case", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || ("Server error " + res.status));
+      }
+      data = await res.json();
+    } else {
+      data = await fetchDiagnosisStream("/api/diagnose/stream", body, (event) => {
+        if (event.event === "specialist_done") {
+          $("status").innerHTML = `<span class="spinner"></span>${escapeHtml(event.specialty)} done — `
+            + `${event.completed} of ${event.total} specialists…`;
+        } else if (event.event === "synthesis_done") {
+          $("status").innerHTML = '<span class="spinner"></span>The board chair is finalizing the differential…';
+        }
+      });
     }
-    const data = await res.json();
 
     currentBoardOutput = data;
     $("saveBtn").style.display = "inline-block";
