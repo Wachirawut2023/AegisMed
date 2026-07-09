@@ -1,1 +1,160 @@
-{}
+{
+  "fabry disease": [
+    {
+      "label": "GeneReviews: Fabry Disease",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK1292/"
+    },
+    {
+      "label": "ACC/AHA Scientific Statement: Fabry Cardiomyopathy",
+      "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3951750/"
+    },
+    {
+      "label": "KDIGO Clinical Practice Guideline for CKD in Fabry Disease",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/27211262"
+    }
+  ],
+  "ehlers-danlos syndrome": [
+    {
+      "label": "GeneReviews: Ehlers-Danlos Syndrome Vascular Type",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK1255/"
+    },
+    {
+      "label": "American College of Gastroenterology: EDS and GI Manifestations",
+      "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6158139/"
+    }
+  ],
+  "myasthenia gravis": [
+    {
+      "label": "NICE Clinical Guideline: Myasthenia Gravis",
+      "url": "https://www.nice.org.uk/guidance/ng108"
+    },
+    {
+      "label": "American Academy of Neurology: MG Evaluation and Management",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/26438681"
+    },
+    {
+      "label": "Cochrane Review: Thymectomy for Myasthenia Gravis",
+      "url": "https://www.cochranelibrary.com/CD005224/"
+    }
+  ],
+  "primary biliary cholangitis": [
+    {
+      "label": "AASLD Clinical Practice Guidelines: PBC",
+      "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7070372/"
+    },
+    {
+      "label": "EASL Clinical Practice Guidelines: PBC",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/27906439"
+    }
+  ],
+  "cushing's disease": [
+    {
+      "label": "Endocrine Society Clinical Practice Guideline: Cushing's Disease",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/17284640"
+    },
+    {
+      "label": "Mayo Clinic: Cushing Syndrome Diagnosis and Treatment",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/34519523"
+    }
+  ],
+  "giant cell arteritis": [
+    {
+      "label": "American College of Rheumatology: Giant Cell Arteritis Guidelines",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/32341472"
+    },
+    {
+      "label": "NICE Clinical Guideline: Polymyalgia Rheumatica and Giant Cell Arteritis",
+      "url": "https://www.nice.org.uk/guidance/ng137"
+    }
+  ],
+  "guillain-barré syndrome": [
+    {
+      "label": "American Academy of Neurology: Guillain-Barré Syndrome Management",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/19752380"
+    },
+    {
+      "label": "Cochrane Review: Immunotherapy for Guillain-Barré Syndrome",
+      "url": "https://www.cochranelibrary.com/CD002063/"
+    }
+  ],
+  "kawasaki disease": [
+    {
+      "label": "American Heart Association: Diagnosis and Management of Kawasaki Disease",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/28356445"
+    },
+    {
+      "label": "NICE Clinical Guideline: Kawasaki Disease",
+      "url": "https://www.nice.org.uk/guidance/cg100"
+    }
+  ],
+  "lupus peritonitis": [
+    {
+      "label": "ACR Guidelines: SLE Management in Adults",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/32198081"
+    },
+    {
+      "label": "EULAR Guidelines: SLE Management",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/30679110"
+    }
+  ],
+  "hypocomplementemic urticarial vasculitis": [
+    {
+      "label": "Orphanet: Hypocomplementemic Urticarial Vasculitis Syndrome",
+      "url": "https://www.orpha.net/conorg/org/ORPHA3280"
+    },
+    {
+      "label": "American Academy of Dermatology: Vasculitis",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/25347099"
+    }
+  ],
+  "marfan syndrome": [
+    {
+      "label": "GeneReviews: Marfan Syndrome",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK1335/"
+    },
+    {
+      "label": "Genetics in Medicine: Marfan Syndrome Revised Nosology",
+      "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5159190/"
+    }
+  ],
+  "hereditary hemochromatosis": [
+    {
+      "label": "GeneReviews: Hemochromatosis Type 1",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK1440/"
+    },
+    {
+      "label": "AASLD Guideline: Hemochromatosis",
+      "url": "https://www.ncbi.nlm.nih.gov/pubmed/20194640"
+    }
+  ],
+  "hypophosphatasia": [
+    {
+      "label": "GeneReviews: Alkaline Phosphatase, Hypophosphatasia",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK1448/"
+    },
+    {
+      "label": "Orphanet: Hypophosphatasia",
+      "url": "https://www.orpha.net/conorg/org/ORPHA413"
+    }
+  ],
+  "niemann-pick disease": [
+    {
+      "label": "GeneReviews: Niemann-Pick Disease Type C",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK1355/"
+    },
+    {
+      "label": "Orphanet: Niemann-Pick Type C",
+      "url": "https://www.orpha.net/conorg/org/ORPHA86819"
+    }
+  ],
+  "familial mediterranean fever": [
+    {
+      "label": "GeneReviews: Familial Mediterranean Fever",
+      "url": "https://www.ncbi.nlm.nih.gov/books/NBK1227/"
+    },
+    {
+      "label": "Orphanet: Familial Mediterranean Fever",
+      "url": "https://www.orpha.net/conorg/org/ORPHA342"
+    }
+  ]
+}
