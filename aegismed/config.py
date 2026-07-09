@@ -21,6 +21,10 @@ MODEL: str = os.getenv("MODEL", "accounts/fireworks/models/gemma-3-27b-it").stri
 
 FIREWORKS_API_URL: str = "https://api.fireworks.ai/inference/v1/chat/completions"
 
+# Optional: a fine-tuned Fireworks model to use as the default "--finetuned"
+# model in eval/compare_models.py (see docs/DATA_AND_EVAL.md "Comparing models").
+FINETUNED_MODEL_DEFAULT: str = os.getenv("FINETUNED_MODEL", "").strip()
+
 
 def demo_mode() -> bool:
     """Decide whether to use canned sample answers instead of the real AI.

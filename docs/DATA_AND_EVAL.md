@@ -127,6 +127,48 @@ it's approximate. Two honest caveats to mention if asked:
 Before quoting a number in your video, skim the ❌ rows in `eval/results.md` by
 eye — sometimes AegisMed was actually right and just used different words.
 
+## Comparing models
+
+`eval/run_eval.py` scores one model at a time (whatever `MODEL` is set to). To
+see how a **fine-tuned model**, the **base Gemma model**, and **Gemma 4**
+stack up against each other on the exact same cases, use
+**`eval/compare_models.py`** instead:
+
+```bash
+python eval/compare_models.py \
+  --finetuned accounts/you/models/your-tuned-model \
+  --limit 10                      # quick run on the first 10 cases first
+```
+
+Or set the fine-tuned model ID once in `.env`:
+
+```
+FINETUNED_MODEL=accounts/you/models/your-tuned-model
+```
+
+```bash
+python eval/compare_models.py     # full run over all cases
+```
+
+It runs the SAME cases through the SAME board, once per model (swapping only
+which model answers), and writes a side-by-side report to
+**`eval/model_comparison.md`**:
+
+- a headline table (correct / hit rate / errors / avg latency per model)
+- a per-source hit-rate table with one column per model
+- a per-case matrix showing ✅ / ❌ for each model on each case
+
+Flags `--limit`, `--delay`, and `--no-intake` behave exactly as in
+`run_eval.py`. The base model defaults to `accounts/fireworks/models/gemma-3-27b-it`
+and Gemma 4 defaults to `accounts/fireworks/models/gemma-4-31b-it`; override
+either with `--base` / `--gemma4` if you want different variants.
+
+> Each model is scored in a single pass — this is one sample, not an average
+> across repeats, so treat small differences (a few percentage points) as
+> noise rather than a definitive ranking. As with `run_eval.py`, this needs a
+> real `FIREWORKS_API_KEY` (demo mode returns identical canned answers for
+> every model, so pass `--allow-demo` only to check that the plumbing runs).
+
 ## Ways to make the number better (during hackathon week)
 
 1. **Improve the specialist prompts** in `aegismed/specialists.py` — this is the
