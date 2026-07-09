@@ -103,7 +103,10 @@ async def diagnose(
             for item in specialist_opinions
         )
     )
-    synthesis = await llm.chat(SYNTHESIS_PROMPT, synthesis_input, agent_name="synthesis")
+    synthesis = await llm.chat(
+        SYNTHESIS_PROMPT, synthesis_input, agent_name="synthesis",
+        model=config.SYNTHESIS_MODEL,
+    )
 
     # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
     diagnoses = knowledge.extract_diagnoses(synthesis)

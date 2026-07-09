@@ -15,11 +15,18 @@ class LLMError(Exception):
     """Raised when the AI service cannot be reached or returns an error."""
 
 
-async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> str:
+async def chat(
+    system_prompt: str, user_prompt: str, agent_name: str = "", model: str | None = None
+) -> str:
     """Send one question to the model and return its answer as plain text.
 
     In demo mode this returns pre-written sample output instead (zero cost,
     no API key needed) so the whole app can be tried and demonstrated offline.
+
+    `model` lets a caller override which model/adapter handles this specific
+    call (e.g. routing only the synthesis agent through a fine-tuned model
+    while every other agent keeps using the base `config.MODEL`). Defaults
+    to `config.MODEL` when not given.
     """
     if config.demo_mode():
         if agent_name == "intake":
@@ -32,7 +39,7 @@ async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> st
         )
 
     payload = {
-        "model": config.MODEL,
+        "model": model or config.MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

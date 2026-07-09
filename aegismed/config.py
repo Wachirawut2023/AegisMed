@@ -17,7 +17,17 @@ FIREWORKS_API_KEY: str = os.getenv("FIREWORKS_API_KEY", "").strip()
 
 # Google's Gemma model hosted on Fireworks AI (running on AMD hardware).
 # Swap via the MODEL variable in .env once launch-day models are confirmed.
+# Every agent uses this model except the synthesis agent, which uses
+# SYNTHESIS_MODEL below (falling back to MODEL if that isn't set).
 MODEL: str = os.getenv("MODEL", "accounts/fireworks/models/gemma-3-27b-it").strip()
+
+# The model the synthesis ("board chair") agent uses. Fine-tuning
+# (finetune/) only trains that one agent's task, so a tuned adapter belongs
+# here, not in MODEL — pointing MODEL at it would also route intake,
+# retrieval, and all 7 specialists through an adapter they were never
+# trained for. Defaults to MODEL when unset, so nothing changes until it's
+# explicitly configured.
+SYNTHESIS_MODEL: str = os.getenv("SYNTHESIS_MODEL", "").strip() or MODEL
 
 FIREWORKS_API_URL: str = "https://api.fireworks.ai/inference/v1/chat/completions"
 

@@ -275,7 +275,10 @@ def main() -> None:
                 print("\n✓ Fine-tuning complete!")
                 print(f"  Your tuned model: {model}")
                 print("\nTo use it, set this in your .env and restart the app:")
-                print(f"  MODEL={model}")
+                print(f"  SYNTHESIS_MODEL={model}")
+                print("(not MODEL — this only trains the synthesis agent's task, so")
+                print(" SYNTHESIS_MODEL scopes it to that one call; leave MODEL as the")
+                print(" base model for intake/retrieval/specialists.)")
                 print("Then re-run `python eval/run_eval.py` to measure the lift.")
             else:
                 print(f"\n✗ Job ended in state {state}.")

@@ -92,14 +92,22 @@ python finetune/run_finetune.py --epochs 2     # train a little longer
 ## Using your tuned model
 
 When the job completes it prints a model id like
-`accounts/<your-account>/models/aegismed-gemma-tuned`. Put it in `.env`:
+`accounts/<your-account>/models/aegismed-gemma-tuned`. Put it in `.env` as
+`SYNTHESIS_MODEL`, **not** `MODEL`:
 
 ```
-MODEL=accounts/<your-account>/models/aegismed-gemma-tuned
+SYNTHESIS_MODEL=accounts/<your-account>/models/aegismed-gemma-tuned
 ```
 
-Restart the app (or re-run the eval). Everything else is unchanged — every
-agent still routes through `aegismed/llm.py`; only the model name is different.
+Step 2 only builds training examples for the synthesis ("board chair")
+agent — intake, retrieval, and the 7 specialists have no fine-tuning data at
+all. `SYNTHESIS_MODEL` scopes the tuned adapter to just that one call;
+`MODEL` keeps handling every other agent on the base model. (Setting `MODEL`
+itself to the tuned adapter would route intake/retrieval/specialists through
+it too, even though they were never trained for it.)
+
+Restart the app (or re-run the eval). Every agent still routes through
+`aegismed/llm.py`; only the synthesis call's model name is different.
 
 ## Prefer the CLI?
 

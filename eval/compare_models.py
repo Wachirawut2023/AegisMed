@@ -66,7 +66,18 @@ def run_eval_for_model(model_name: str, model_id: str, limit: int | None, delay:
     import tempfile
 
     env = os.environ.copy()
-    env["MODEL"] = model_id
+    if model_name.endswith("_tuned"):
+        # The tuned LoRA was only fine-tuned on the synthesis agent's task
+        # (see docs/FINETUNE.md), so scope it to that one call via
+        # SYNTHESIS_MODEL and leave every other agent on the base model —
+        # setting MODEL itself would route intake/retrieval/specialists
+        # through an adapter they were never trained for.
+        base_key = model_name[: -len("_tuned")] + "_base"
+        env["SYNTHESIS_MODEL"] = model_id
+        if base_key in MODELS_TO_TEST:
+            env["MODEL"] = MODELS_TO_TEST[base_key]
+    else:
+        env["MODEL"] = model_id
 
     print(f"\n{'='*60}")
     print(f"Testing: {model_name} ({model_id})")
