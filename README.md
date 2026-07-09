@@ -87,6 +87,10 @@ held-out cases"* — written to `eval/results.md`. See
 [`docs/DATA_AND_EVAL.md`](docs/DATA_AND_EVAL.md) for a beginner-friendly walkthrough
 and [`data/SOURCES.md`](data/SOURCES.md) for dataset attribution and licenses.
 
+To compare a fine-tuned model against the base Gemma model and Gemma 4 on the
+same cases, use `python eval/compare_models.py --finetuned <model-id>` — see
+the ["Comparing models"](docs/DATA_AND_EVAL.md#comparing-models) section.
+
 ## Configuration
 
 All settings live in `.env` (see `.env.example`):
