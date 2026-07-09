@@ -60,6 +60,12 @@ class SaveCaseRequest(PatientCase):
     # Optional metadata for case storage.
     submitted_by: str = Field(default="", max_length=100)
     specialty: str = Field(default="", max_length=50)
+    # Optional: a board result already computed by /api/diagnose or
+    # /api/teaching/case. If provided, it is saved as-is instead of running the
+    # board again — this keeps the saved case identical to what the physician
+    # reviewed on screen (the board is non-deterministic outside demo mode, so
+    # re-running it could silently save a different result than was shown).
+    board_output: dict | None = Field(default=None)
 
 
 class CommentRequest(BaseModel):
@@ -244,12 +250,13 @@ async def teaching_case(case: TeachingCase) -> dict:
 async def save_case_result(req: SaveCaseRequest) -> dict:
     """Save a completed board result for case-conference follow-up or team review.
 
-    Runs the board on the provided case and saves the result with metadata
-    (who submitted it, what specialty). Returns a case_id for retrieval,
-    printing, or team comments.
+    If `board_output` is provided (the result of a prior /api/diagnose or
+    /api/teaching/case call), it is saved as-is. Otherwise the board is run on
+    the provided case fields. Saves with metadata (who submitted it, what
+    specialty). Returns a case_id for retrieval, printing, or team comments.
     """
     try:
-        board_output = await orchestrator.diagnose(
+        board_output = req.board_output or await orchestrator.diagnose(
             age=req.age,
             sex=req.sex,
             symptoms=req.symptoms,

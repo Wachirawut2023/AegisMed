@@ -214,9 +214,16 @@ No auth, no patient identity, no PHI — just case lookup and team collaboration
 
 ## `POST /api/cases/save` — save a board result with metadata
 
-Runs a diagnostic board (same as `/api/diagnose`) and saves the result with optional
-metadata about who submitted it and what specialty is involved. Returns a `case_id`
-that can be used to retrieve the case later.
+Saves a board result with optional metadata about who submitted it and what
+specialty is involved. Returns a `case_id` that can be used to retrieve the
+case later.
+
+If you already have a board result (from a prior `/api/diagnose` or
+`/api/teaching/case` call), pass it as `board_output` and it is saved as-is —
+no board re-run, no risk of the saved case silently differing from the one
+you reviewed (the board is not deterministic outside demo mode). If
+`board_output` is omitted, this endpoint runs the board itself on the
+provided case fields, exactly like `/api/diagnose`.
 
 **Request:** `PatientCase` plus:
 
@@ -224,6 +231,7 @@ that can be used to retrieve the case later.
 |---|---|---|---|
 | `submitted_by` | string | no | e.g. "Dr. Smith, Cardiology" — identifies the submitter |
 | `specialty` | string | no | e.g. "Cardiology" — primary specialty for filtering |
+| `board_output` | object | no | A previously-computed board result (the full JSON body from `/api/diagnose` or `/api/teaching/case`). If provided, it is saved verbatim instead of re-running the board. |
 
 **Response:**
 

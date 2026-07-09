@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>AegisMed — Diagnostic Case Conference Board</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🩺</text></svg>">
 <style>
   :root {
     --bg: #f4f6f9;
@@ -542,6 +543,9 @@ $("saveBtn").addEventListener("click", async () => {
         ...readCase(),
         specialty: specialty || "",
         submitted_by: submittedBy || "",
+        // Save exactly what's on screen — don't re-run the board (it isn't
+        // deterministic outside demo mode) and don't spend a second API call.
+        board_output: currentBoardOutput,
       }),
     });
     if (!res.ok) throw new Error("Failed to save case");
