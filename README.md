@@ -122,7 +122,7 @@ eval/              # evaluation harness (scores AegisMed on known cases)
 docs/              # hackathon guide, architecture, roadmap, checklist, data & eval
 ```
 
-New here? Start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — it explains every concept in plain language. For the product/market story, see [`docs/MARKET_EXPANSION.md`](docs/MARKET_EXPANSION.md).
+New here? Start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — it explains every concept in plain language. For the product/market story, see [`docs/MARKET_EXPANSION.md`](docs/MARKET_EXPANSION.md); to integrate the board into another product, see [`docs/API.md`](docs/API.md).
 
 ## License
 

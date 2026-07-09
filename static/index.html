@@ -88,12 +88,24 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .print-only { display: none; }
   @media print {
+    @page { margin: 14mm; }
     .print-only { display: block; margin-bottom: 14px; font-size: .85rem; }
     header, #inputCard, #exportBtn, .actions, .status { display: none !important; }
     :root {
       --bg: #fff; --card: #fff; --ink: #000; --muted: #444;
       --accent: #0e6e6b; --accent-soft: #fff; --warn-bg: #fff; --warn-ink: #000;
       --border: #999; --danger: #a33030;
+    }
+    /* Keep a card from being sliced across a page break... */
+    .card, .spec-card, #printHeader, #printFooter {
+      break-inside: avoid; page-break-inside: avoid;
+    }
+    /* ...except the board conclusion, which is long and must be free to flow. */
+    .synthesis { break-inside: auto; page-break-inside: auto; }
+    /* Printed hyperlinks aren't clickable — show each destination after it. */
+    #results a[href]::after {
+      content: " (" attr(href) ")";
+      font-size: .75em; color: #555; word-break: break-all;
     }
   }
 </style>

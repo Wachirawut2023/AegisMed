@@ -73,10 +73,10 @@ before touching the LLM-language question.
   demand, not a hackathon-week task.
 - **Public API / embed story** — mostly free today: FastAPI already serves
   interactive docs at `/docs` and a machine-readable spec at `/openapi.json`
-  with zero extra code. A cheap, high-value follow-up: add `tags=`/`summary=`
-  to the existing routes in `aegismed/main.py` and write a short
-  `docs/API.md` with one `curl` and one Python `httpx` example — real "embed
-  this in your product" value for minutes of effort.
+  with zero extra code. The routes in `aegismed/main.py` are now tagged and
+  summarized, and [`docs/API.md`](API.md) documents the request/response shapes
+  with `curl` and Python `httpx` examples — real "embed this in your
+  telehealth/EHR product" value.
 - **PDF / printable export** — **this round's second proof-of-concept.** See
   §6.
 
@@ -86,9 +86,12 @@ This was the explicit top priority for this round, and it's now implemented:
 `aegismed/guidelines.py` extends the existing anti-hallucination citation
 pattern (`aegismed/knowledge.py`) to clinical practice guidelines. For every
 diagnosis the board concludes, the app now attaches live, deterministic search
-links on NICE, PubMed, TRIP Database, MedlinePlus, and Guideline Central — the
-same "never ask the model, always build a real link" discipline already
-proven out for Orphanet/OMIM/PubMed/GARD.
+links on PubMed, the Cochrane Library, NICE, TRIP Database, MedlinePlus, NCBI
+Bookshelf/GeneReviews, and Guideline Central — the same "never ask the model,
+always build a real link" discipline already proven out for
+Orphanet/OMIM/PubMed/GARD. An optional curated index
+(`data/guidelines_index.json`) can layer hand-verified links to specific
+guideline documents on top, without ever asking the model.
 
 This is the strongest **enterprise-sales and regulatory-comfort argument**
 available to the product: "AegisMed never invents a citation or a guideline —

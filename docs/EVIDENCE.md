@@ -33,10 +33,14 @@ So AegisMed follows one rule: **the AI is never the source of a citation.**
 
 3. **Clinical practice guideline search links**, attached the same way — never
    asked of the model. For each diagnosis, `aegismed/guidelines.py` builds live
-   search-result links on NICE, PubMed, TRIP Database, MedlinePlus, and
-   Guideline Central. These are *search* pages, not an AI-selected "the
-   guideline for X" — that distinction matters, since we can't guarantee a
-   specific document is current, only that the search itself is real.
+   search-result links on PubMed, the Cochrane Library, NICE, TRIP Database,
+   MedlinePlus, NCBI Bookshelf/GeneReviews, and Guideline Central. These are
+   *search* pages, not an AI-selected "the guideline for X" — that distinction
+   matters, since we can't guarantee a specific document is current, only that
+   the search itself is real. An optional curated index
+   (`data/guidelines_index.json`, empty by default) can layer hand-verified
+   links to *specific* guideline documents on top of the search links; every
+   entry must be manually browser-verified before it is added.
 
 ## Evidence that informs the specialists (retrieval)
 
@@ -66,7 +70,8 @@ inventing citations. You can see what was retrieved in the app's
 | `data/build_knowledge_base.py` | Builds `data/citations_index.json` — disease name → Orphanet/OMIM codes — from the RareBench disease mapping. Run once. |
 | `data/citations_index.json` | The committed lookup table (~10,700 diseases). |
 | `aegismed/knowledge.py` | Turns a diagnosis name into verified reference links; extracts diagnoses from the board's conclusion. |
-| `aegismed/guidelines.py` | Turns a diagnosis name into live clinical practice guideline search links (NICE, PubMed, TRIP, MedlinePlus, Guideline Central). |
+| `aegismed/guidelines.py` | Turns a diagnosis name into live guideline search links (PubMed, Cochrane, NICE, TRIP, MedlinePlus, NCBI Bookshelf, Guideline Central) + optional curated exact-match links. |
+| `data/guidelines_index.json` | Optional curated map: diagnosis → hand-verified specific-guideline links (empty by default; future curation). |
 | `aegismed/retrieval.py` | The retrieval agent + evidence dossier handed to the specialists. |
 
 ## Building / refreshing the knowledge base

@@ -16,10 +16,21 @@ from pydantic import BaseModel, Field
 from . import __version__, config, intake, knowledge, llm, orchestrator
 from .demo_data import EXAMPLE_CASE
 
+TAGS_METADATA = [
+    {"name": "diagnosis", "description": "The core board: intake questions and the full diagnostic run."},
+    {"name": "cases", "description": "Built-in and curated example cases for demos and testing."},
+    {"name": "meta", "description": "Service metadata and health checks for integrators and orchestration."},
+]
+
 app = FastAPI(
     title="AegisMed",
-    description="A virtual board of AI specialist physicians for rare-disease diagnosis support.",
+    description=(
+        "A virtual board of AI specialist physicians for rare-disease diagnosis "
+        "support. Clinical decision-support only — every response must be verified "
+        "by a licensed physician. See docs/API.md for an integration guide."
+    ),
     version=__version__,
+    openapi_tags=TAGS_METADATA,
 )
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
@@ -35,12 +46,17 @@ class PatientCase(BaseModel):
     clarifications: str = Field(default="", max_length=8000)
 
 
-@app.get("/")
+@app.get("/", tags=["meta"], summary="Web UI", include_in_schema=False)
 async def home() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    tags=["meta"],
+    summary="Health check",
+    description="Liveness probe for Docker/uptime checks. Reports version, demo mode, model, and knowledge-base size.",
+)
 async def health() -> dict:
     return {
         "status": "ok",
@@ -51,7 +67,12 @@ async def health() -> dict:
     }
 
 
-@app.get("/api/example-case")
+@app.get(
+    "/api/example-case",
+    tags=["cases"],
+    summary="Built-in example case",
+    description="The single hard-coded sample case used by the 'Load example case' button.",
+)
 async def example_case() -> dict:
     """The built-in sample case used by the 'Load example case' button."""
     return EXAMPLE_CASE
@@ -60,7 +81,12 @@ async def example_case() -> dict:
 DEMO_CASES_FILE = Path(__file__).resolve().parent.parent / "data" / "demo_cases.json"
 
 
-@app.get("/api/demo-cases")
+@app.get(
+    "/api/demo-cases",
+    tags=["cases"],
+    summary="Curated demo cases",
+    description="Real cases from public datasets (with known diagnoses) for the demo dropdown.",
+)
 async def demo_cases() -> list[dict]:
     """Curated real cases from public datasets for the demo dropdown.
 
@@ -85,7 +111,12 @@ async def demo_cases() -> list[dict]:
     return [{"label": "Example: Fabry disease", **EXAMPLE_CASE, "expected_diagnosis": "Fabry disease"}]
 
 
-@app.post("/api/intake")
+@app.post(
+    "/api/intake",
+    tags=["diagnosis"],
+    summary="Intake: ask for missing details",
+    description="Runs one quick model call that returns high-value clarifying questions (or none). Optional — you may skip straight to /api/diagnose.",
+)
 async def intake_questions(case: PatientCase) -> dict:
     """Intake step: ask the physician for missing high-value details, if any.
 
@@ -105,7 +136,12 @@ async def intake_questions(case: PatientCase) -> dict:
         raise HTTPException(status_code=502, detail=str(err)) from err
 
 
-@app.post("/api/diagnose")
+@app.post(
+    "/api/diagnose",
+    tags=["diagnosis"],
+    summary="Convene the board",
+    description="Runs the full diagnostic board and returns the ranked differential, specialist opinions, verified citations, and clinical-guideline search links.",
+)
 async def diagnose(case: PatientCase) -> dict:
     try:
         return await orchestrator.diagnose(
