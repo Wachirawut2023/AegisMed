@@ -42,8 +42,10 @@ sys.path.insert(0, str(ROOT))
 
 from aegismed import config  # noqa: E402
 
-# The tuned LoRA adapter produced by finetune/run_finetune.py.
-TUNED_MODEL = "accounts/{account}/models/aegismed-gemma-tuned"
+# The tuned LoRA adapter produced by finetune/run_finetune.py. Override with
+# --model if you trained under a different --output-model name.
+DEFAULT_TUNED_MODEL_NAME = "aegismed-gemma-tuned"
+TUNED_MODEL = "accounts/{account}/models/{model_name}"
 # The base model the adapter was trained on.
 BASE_MODEL = "accounts/fireworks/models/gemma-3-27b-it"
 
@@ -85,7 +87,7 @@ def _require_key() -> str:
     return config.FIREWORKS_API_KEY
 
 
-def _lora_llm(account: str):
+def _lora_llm(account: str, model_name: str):
     """SDK handle for the tuned adapter as an on-demand LoRA deployment.
 
     Passing the *adapter* as the model with deployment_type="on-demand-lora" tells
@@ -98,7 +100,7 @@ def _lora_llm(account: str):
     from fireworks import LLM  # imported lazily so `status`/errors stay fast
 
     return LLM(
-        model=TUNED_MODEL.format(account=account),
+        model=TUNED_MODEL.format(account=account, model_name=model_name),
         deployment_type="on-demand-lora",
         base_id=BASE_DEPLOYMENT_ID,
         accelerator_type=ACCELERATOR,
@@ -168,11 +170,11 @@ def _first_working(candidates: list[str], label: str) -> str:
     )
 
 
-def cmd_up() -> None:
+def cmd_up(model_name: str) -> None:
     account = _account_id()
     _require_key()
 
-    tuned = TUNED_MODEL.format(account=account)
+    tuned = TUNED_MODEL.format(account=account, model_name=model_name)
     print("Provisioning a dedicated on-demand deployment (this spends credit)…")
     print(f"  base model : {BASE_MODEL}")
     print(f"  adapter    : {tuned}")
@@ -188,7 +190,7 @@ def cmd_up() -> None:
     _base_llm(account).apply(wait=True)
 
     print("  Step B: loading tuned LoRA adapter onto it…")
-    _lora_llm(account).apply(wait=True)
+    _lora_llm(account, model_name).apply(wait=True)
 
     # Deterministic — we chose BASE_DEPLOYMENT_ID ourselves, no need to introspect protos.
     dep_name = f"accounts/{account}/deployments/{BASE_DEPLOYMENT_ID}"
@@ -223,7 +225,7 @@ def cmd_up() -> None:
     print("\nReady for A/B testing. Remember to run `python finetune/deploy.py down` when done.")
 
 
-def cmd_down() -> None:
+def cmd_down(model_name: str) -> None:
     account = _account_id()
     _require_key()
 
@@ -231,7 +233,7 @@ def cmd_down() -> None:
 
     # Layer 1: unload the LoRA addon (harmless if already gone / never loaded).
     try:
-        _lora_llm(account).delete_deployment(wait=True)
+        _lora_llm(account, model_name).delete_deployment(wait=True)
         print("✓ LoRA addon unloaded.")
     except Exception as err:  # noqa: BLE001
         print(f"(LoRA unload skipped: {err})")
@@ -286,10 +288,20 @@ def cmd_status() -> None:
 def main() -> None:
     ap = argparse.ArgumentParser(description="Manage the A/B testing deployment on Fireworks.")
     ap.add_argument("command", choices=["up", "down", "status"], help="what to do")
+    ap.add_argument(
+        "--model", default=DEFAULT_TUNED_MODEL_NAME,
+        help=f"tuned model name to deploy, i.e. the --output-model you passed to "
+             f"run_finetune.py (default: {DEFAULT_TUNED_MODEL_NAME})",
+    )
     args = ap.parse_args()
 
     try:
-        {"up": cmd_up, "down": cmd_down, "status": cmd_status}[args.command]()
+        if args.command == "up":
+            cmd_up(args.model)
+        elif args.command == "down":
+            cmd_down(args.model)
+        else:
+            cmd_status()
     except DeployError as err:
         sys.exit(f"\nError: {err}")
 
