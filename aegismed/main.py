@@ -56,10 +56,21 @@ class TeachingCase(PatientCase):
     expected_diagnosis: str = Field(..., min_length=1, max_length=200)
 
 
+class QAPair(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000)
+    answer: str = Field(..., min_length=1, max_length=4000)
+
+
 class SaveCaseRequest(PatientCase):
+    # The board result the physician is looking at, sent back by the client so
+    # what's saved matches what's on screen (the board is non-deterministic, so
+    # re-running here would save a subtly different result).
+    board_output: dict = Field(default_factory=dict)
     # Optional metadata for case storage.
     submitted_by: str = Field(default="", max_length=100)
     specialty: str = Field(default="", max_length=50)
+    # Any follow-up Q&A already asked before saving.
+    followup_qa: list[QAPair] = Field(default_factory=list, max_length=50)
 
 
 class CommentRequest(BaseModel):
@@ -81,11 +92,6 @@ class EvidenceCandidateIn(BaseModel):
 class EvidenceIn(BaseModel):
     phenotypes: list[str] = Field(default_factory=list)
     candidates: list[EvidenceCandidateIn] = Field(default_factory=list)
-
-
-class QAPair(BaseModel):
-    question: str = Field(..., min_length=1, max_length=2000)
-    answer: str = Field(..., min_length=1, max_length=4000)
 
 
 class FollowupRequest(PatientCase):
@@ -338,39 +344,49 @@ async def teaching_case(case: TeachingCase) -> dict:
     "/api/cases/save",
     tags=["team"],
     summary="Save a case for later review",
-    description="Saves the result of a board run with optional metadata. Returns a case_id for later retrieval and team discussion.",
+    description=(
+        "Saves the board result the client already holds (from /api/diagnose "
+        "or /api/diagnose/stream) — it is NOT recomputed here, so what's saved "
+        "matches exactly what the physician reviewed. Stores the original case "
+        "input and any follow-up Q&A too. Returns a case_id for retrieval and "
+        "team discussion."
+    ),
 )
 async def save_case_result(req: SaveCaseRequest) -> dict:
-    """Save a completed board result for case-conference follow-up or team review.
+    """Save the on-screen board result for case-conference follow-up or review.
 
-    Runs the board on the provided case and saves the result with metadata
-    (who submitted it, what specialty). Returns a case_id for retrieval,
-    printing, or team comments.
+    The client sends back the `board_output` it is displaying rather than
+    having the server re-run the (non-deterministic) board. Returns a case_id
+    for retrieval, printing, follow-up, or team comments.
     """
-    try:
-        board_output = await orchestrator.diagnose(
-            age=req.age,
-            sex=req.sex,
-            symptoms=req.symptoms,
-            history=req.history,
-            labs=req.labs,
-            clarifications=req.clarifications,
-            region=req.region,
+    if not req.board_output:
+        raise HTTPException(
+            status_code=400,
+            detail="board_output is required — save the result you already have "
+                   "from /api/diagnose, don't ask the server to recompute it.",
         )
 
-        case_id = cases.save_case(
-            board_output=board_output,
-            submitted_by=req.submitted_by,
-            specialty=req.specialty,
-        )
+    case_id = cases.save_case(
+        board_output=req.board_output,
+        submitted_by=req.submitted_by,
+        specialty=req.specialty,
+        case_input={
+            "age": req.age,
+            "sex": req.sex,
+            "symptoms": req.symptoms,
+            "history": req.history,
+            "labs": req.labs,
+            "clarifications": req.clarifications,
+            "region": req.region,
+        },
+        followup_qa=[qa.model_dump() for qa in req.followup_qa],
+    )
 
-        return {
-            "case_id": case_id,
-            "status": "saved",
-            "board_output": board_output,
-        }
-    except llm.LLMError as err:
-        raise HTTPException(status_code=502, detail=str(err)) from err
+    return {
+        "case_id": case_id,
+        "status": "saved",
+        "board_output": req.board_output,
+    }
 
 
 @app.get(
@@ -425,3 +441,25 @@ async def add_comment(case_id: str, comment: CommentRequest) -> dict:
     if not success:
         raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
     return {"status": "comment added", "case_id": case_id}
+
+
+@app.post(
+    "/api/cases/{case_id}/followup",
+    tags=["team"],
+    summary="Persist a follow-up Q&A on a saved case",
+    description=(
+        "Appends a follow-up question and its answer (already obtained from "
+        "/api/diagnose/followup) to a saved case, so the consult thread is kept "
+        "with the case for later review."
+    ),
+)
+async def add_case_followup(case_id: str, qa: QAPair) -> dict:
+    """Append one follow-up Q&A exchange to a saved case."""
+    success = cases.append_followup(
+        case_id=case_id,
+        question=qa.question,
+        answer=qa.answer,
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+    return {"status": "followup added", "case_id": case_id}

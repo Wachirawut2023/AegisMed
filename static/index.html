@@ -286,8 +286,8 @@ let demoCases = [];
   } catch (e) { /* dropdown just stays with its single placeholder */ }
 })();
 
-// Load recent cases on page load
-(async () => {
+// Load (and refresh) the recent-cases list.
+async function loadRecentCases() {
   try {
     const res = await fetch("/api/cases");
     const cases_list = await res.json();
@@ -304,7 +304,8 @@ let demoCases = [];
       </div>
     `).join("");
   } catch (e) { /* recent cases just won't load */ }
-})();
+}
+loadRecentCases();
 
 async function loadCase(caseId) {
   try {
@@ -329,13 +330,16 @@ async function loadCase(caseId) {
       `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
     ).join("");
 
-    // A loaded case's original symptoms/history/labs were never persisted
-    // (only the board's output was), so follow-up Q&A can't be grounded
-    // correctly here — clear any stale state from an earlier live run rather
-    // than risk answering against the wrong case.
-    currentBoardOutput = null;
-    currentClarifications = "";
-    followupHistory = [];
+    // Restore enough state to keep the consult going: the board output, the
+    // original case input (persisted since this change), and the follow-up
+    // thread. If an older saved case has no case_input, follow-ups stay
+    // disabled (the handler guards on currentCaseInput).
+    currentBoardOutput = output;
+    currentCaseId = caseData.case_id;
+    currentCaseInput = caseData.case_input && caseData.case_input.symptoms
+      ? caseData.case_input : null;
+    currentClarifications = (caseData.case_input && caseData.case_input.clarifications) || "";
+    followupHistory = (caseData.followup_qa || []).map(qa => ({ question: qa.question, answer: qa.answer }));
     renderFollowupThread();
 
     // Show comments if any
@@ -553,6 +557,8 @@ window.addEventListener("afterprint", () => {
 $("exportBtn").addEventListener("click", () => window.print());
 
 let currentBoardOutput = null;
+let currentCaseInput = null;   // {age,sex,symptoms,history,labs,region} the board saw — grounds follow-ups
+let currentCaseId = null;      // set once saved (or when a saved case is loaded); follow-ups then persist
 
 $("saveBtn").addEventListener("click", async () => {
   if (!currentBoardOutput) return;
@@ -568,16 +574,20 @@ $("saveBtn").addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...readCase(),
+        ...(currentCaseInput || readCase()),
+        clarifications: currentClarifications,
+        board_output: currentBoardOutput,
+        followup_qa: followupHistory,
         specialty: specialty || "",
         submitted_by: submittedBy || "",
       }),
     });
     if (!res.ok) throw new Error("Failed to save case");
     const data = await res.json();
+    // Remember the ID so any further follow-ups persist onto this same case.
+    currentCaseId = data.case_id;
     $("saveStatus").innerHTML = `✓ Case saved with ID: <code>${escapeHtml(data.case_id)}</code>. Share this ID with your team.`;
-    // Reload recent cases
-    location.reload();
+    loadRecentCases();
   } catch (e) {
     $("saveStatus").innerHTML = '<span class="error">' + e.message + "</span>";
   } finally {
@@ -669,8 +679,10 @@ async function runDiagnosis(clarifications) {
   $("status").innerHTML = '<span class="spinner"></span>The specialist board is reviewing the case…';
   $("results").classList.add("hidden");
 
-  // Starting a fresh consult: any follow-up thread from a previous run no
-  // longer applies.
+  // Starting a fresh consult: capture the case the board is about to see, and
+  // drop any follow-up thread / saved-case link from a previous run.
+  currentCaseInput = readCase();
+  currentCaseId = null;
   currentClarifications = clarifications;
   followupHistory = [];
   renderFollowupThread();
@@ -748,8 +760,8 @@ function renderFollowupThread() {
 $("followupAsk").addEventListener("click", async () => {
   const question = $("followupQuestion").value.trim();
   if (!question) return;
-  if (!currentBoardOutput) {
-    $("followupStatus").innerHTML = '<span class="error">Follow-up questions need a freshly run diagnosis (not yet available for a loaded case).</span>';
+  if (!currentBoardOutput || !currentCaseInput) {
+    $("followupStatus").innerHTML = '<span class="error">Follow-up questions aren\'t available for this case (its original details weren\'t saved). Re-run the case to ask follow-ups.</span>';
     return;
   }
   $("followupAsk").disabled = true;
@@ -759,7 +771,7 @@ $("followupAsk").addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...readCase(),
+        ...currentCaseInput,
         clarifications: currentClarifications,
         synthesis: currentBoardOutput.synthesis,
         specialist_opinions: currentBoardOutput.specialist_opinions,
@@ -777,6 +789,14 @@ $("followupAsk").addEventListener("click", async () => {
     $("followupQuestion").value = "";
     renderFollowupThread();
     $("followupStatus").textContent = "";
+    // If this consult is already saved, persist the new exchange onto it.
+    if (currentCaseId) {
+      fetch(`/api/cases/${currentCaseId}/followup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question, answer: data.answer }),
+      }).catch(() => { /* best-effort persistence; the in-memory thread still shows it */ });
+    }
   } catch (e) {
     $("followupStatus").innerHTML = '<span class="error">' + e.message + "</span>";
   } finally {

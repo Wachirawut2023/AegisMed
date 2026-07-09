@@ -293,16 +293,23 @@ No auth, no patient identity, no PHI — just case lookup and team collaboration
 
 ## `POST /api/cases/save` — save a board result with metadata
 
-Runs a diagnostic board (same as `/api/diagnose`) and saves the result with optional
-metadata about who submitted it and what specialty is involved. Returns a `case_id`
-that can be used to retrieve the case later.
+Saves the board result the client **already holds** (from `/api/diagnose` or the
+`final` event of `/api/diagnose/stream`) — the board is **not** recomputed here,
+so what's saved matches exactly what the physician reviewed. The original case
+input and any follow-up Q&A already asked are stored alongside it. Returns a
+`case_id` for later retrieval.
 
 **Request:** `PatientCase` plus:
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
+| `board_output` | object | **yes** | The full diagnostic output from a prior `/api/diagnose` call. A `400` is returned if omitted. |
 | `submitted_by` | string | no | e.g. "Dr. Smith, Cardiology" — identifies the submitter |
 | `specialty` | string | no | e.g. "Cardiology" — primary specialty for filtering |
+| `followup_qa` | array of `{question, answer}` | no | Follow-up exchanges already asked before saving. Max 50. |
+
+The `PatientCase` fields (age/sex/symptoms/…) are stored as the case input so a
+loaded case can still ground follow-up questions.
 
 **Response:**
 
@@ -310,7 +317,7 @@ that can be used to retrieve the case later.
 |---|---|---|
 | `case_id` | string | Unique ID for this case (short UUID) |
 | `status` | string | "saved" |
-| `board_output` | object | Full diagnostic output (same as `/api/diagnose`) |
+| `board_output` | object | Echoes back the saved output |
 
 ### curl
 
@@ -321,8 +328,7 @@ curl -s -X POST http://localhost:8000/api/cases/save \
         "age": "24",
         "sex": "male",
         "symptoms": "burning pain in hands and feet since childhood",
-        "history": "maternal uncle died of renal failure",
-        "labs": "proteinuria; LVH on ECG",
+        "board_output": { "...": "from a prior /api/diagnose response" },
         "submitted_by": "Dr. Johnson, Cardiology",
         "specialty": "Cardiology"
       }' | jq '.case_id'
@@ -332,7 +338,8 @@ curl -s -X POST http://localhost:8000/api/cases/save \
 
 ## `GET /api/cases/{case_id}` — retrieve a saved case
 
-Fetches the full case history including the board output, metadata, and all team comments.
+Fetches the full case history including the board output, the original case
+input, follow-up Q&A, metadata, and all team comments.
 
 **Response:**
 
@@ -342,7 +349,9 @@ Fetches the full case history including the board output, metadata, and all team
 | `timestamp` | string | ISO 8601 timestamp when the case was saved |
 | `submitted_by` | string | Submitter name/title |
 | `specialty` | string | Primary specialty |
+| `case_input` | object | The original case fields (age/sex/symptoms/…) the board saw. |
 | `board_output` | object | Full diagnostic output (see `/api/diagnose` response) |
+| `followup_qa` | array | Follow-up exchanges (`{timestamp, question, answer}`) for this consult. |
 | `team_comments` | array | Comments appended by team members (see below) |
 
 **team_comments** structure:
@@ -429,5 +438,40 @@ curl -s -X POST http://localhost:8000/api/cases/d21efb4c/comment \
   -d '{
         "author": "Dr. Smith, Neurology",
         "text": "Agreed with board conclusion. Recommend MRI follow-up in 3 months."
+      }' | jq '.'
+```
+
+---
+
+## `POST /api/cases/{case_id}/followup` — persist a follow-up Q&A
+
+Appends a follow-up question and its answer (already obtained from
+`/api/diagnose/followup`) to a saved case, so the consult thread is kept with
+the case for later review.
+
+**Request:**
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `question` | string | **yes** | The follow-up question; ≤ 2000 chars |
+| `answer` | string | **yes** | The answer from `/api/diagnose/followup`; ≤ 4000 chars |
+
+**Response:**
+
+```json
+{
+  "status": "followup added",
+  "case_id": "d21efb4c"
+}
+```
+
+### curl
+
+```bash
+curl -s -X POST http://localhost:8000/api/cases/d21efb4c/followup \
+  -H "Content-Type: application/json" \
+  -d '{
+        "question": "What if the creatinine had continued to rise?",
+        "answer": "That would raise the urgency of the renal workup ..."
       }' | jq '.'
 ```

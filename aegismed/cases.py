@@ -24,13 +24,22 @@ def save_case(
     board_output: dict,
     submitted_by: str = "",
     specialty: str = "",
+    case_input: Optional[dict] = None,
+    followup_qa: Optional[list] = None,
 ) -> str:
     """Save a completed board result with optional metadata.
 
     Args:
-        board_output: The full dict from orchestrator.diagnose() or api/teaching/case
+        board_output: The board result the physician is actually looking at,
+            supplied by the caller (NOT recomputed here) so what's saved matches
+            what was on screen — the board is non-deterministic, so re-running
+            would produce a subtly different result.
         submitted_by: Free text, e.g. "Dr. Smith, Cardiology"
         specialty: Primary specialty relevant to the case (e.g. "Cardiology")
+        case_input: The original case fields (age/sex/symptoms/history/labs/
+            clarifications/region), stored so a loaded case can still ground
+            follow-up questions.
+        followup_qa: Any follow-up Q&A already asked before saving.
 
     Returns:
         case_id: A short unique ID for this case.
@@ -43,8 +52,10 @@ def save_case(
         "timestamp": timestamp,
         "submitted_by": submitted_by,
         "specialty": specialty or "",
+        "case_input": case_input or {},
         "board_output": board_output,
         "team_comments": [],
+        "followup_qa": followup_qa or [],
     }
 
     # Append to the cases log (create file if it doesn't exist).
@@ -143,6 +154,43 @@ def append_comment(case_id: str, author: str, text: str) -> bool:
         return False
 
     # Rewrite the file with the updated entry
+    with open(CASES_FILE, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+    return True
+
+
+def append_followup(case_id: str, question: str, answer: str) -> bool:
+    """Append a follow-up Q&A exchange to a saved case.
+
+    Mirrors append_comment: rewrites the JSONL log with the updated entry.
+
+    Returns:
+        True if successful, False if case not found.
+    """
+    if not CASES_FILE.exists():
+        return False
+
+    lines = []
+    found = False
+
+    with open(CASES_FILE, "r", encoding="utf-8") as f:
+        for line in f:
+            if not line.strip():
+                continue
+            entry = json.loads(line)
+            if entry.get("case_id") == case_id:
+                found = True
+                entry.setdefault("followup_qa", []).append({
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "question": question,
+                    "answer": answer,
+                })
+            lines.append(json.dumps(entry))
+
+    if not found:
+        return False
+
     with open(CASES_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
 
