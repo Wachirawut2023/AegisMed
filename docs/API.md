@@ -103,3 +103,81 @@ for ref in data["guideline_references"]:
 
 A diagnostic run makes several model calls and can take up to a minute — set a
 generous client timeout (the example uses 120s).
+
+---
+
+## `POST /api/teaching/case` — teaching mode (compare to expected diagnosis)
+
+For classroom and simulation workflows: the board runs normally, but also compares
+the board's ranked diagnoses against an expected (correct) diagnosis. Returns the
+full diagnostic output plus a `match_summary` showing whether the expected diagnosis
+appeared in the top 3, its rank, and the board's top-3 diagnoses for comparison.
+
+**Request:** `PatientCase` plus:
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `expected_diagnosis` | string | **yes** | The student's or instructor's expected diagnosis. ≤ 200 chars. |
+
+**Response:** Everything from `/api/diagnose`, plus:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `match_summary` | object | Comparison metrics (see below). |
+
+`match_summary` structure:
+
+```json
+{
+  "expected_diagnosis": "Fabry disease",
+  "found_in_top_3": true,
+  "rank": 1,
+  "is_rare": false,
+  "board_top_3": ["Fabry disease", "Hypertrophic cardiomyopathy with coincidental neuropathy", "..."]
+}
+```
+
+- `found_in_top_3`: whether the expected diagnosis appears in the board's top 3.
+- `rank`: position (1–3) if found; null otherwise.
+- `is_rare`: whether the diagnosis was tagged [RARE] by the board.
+- `board_top_3`: the board's ranked top-three diagnoses for reference.
+
+### curl
+
+```bash
+curl -s -X POST http://localhost:8000/api/teaching/case \
+  -H "Content-Type: application/json" \
+  -d '{
+        "age": "24",
+        "sex": "male",
+        "symptoms": "burning pain in hands and feet since childhood, decreased sweating",
+        "history": "maternal uncle died of renal failure",
+        "labs": "proteinuria; LVH on ECG",
+        "expected_diagnosis": "Fabry disease"
+      }' | jq '.match_summary'
+```
+
+### Python (httpx)
+
+```python
+import httpx
+
+case = {
+    "age": "24",
+    "sex": "male",
+    "symptoms": "burning pain in hands and feet since childhood, decreased sweating",
+    "history": "maternal uncle died of renal failure",
+    "labs": "proteinuria; LVH on ECG",
+    "expected_diagnosis": "Fabry disease",  # Added for teaching mode
+}
+
+resp = httpx.post("http://localhost:8000/api/teaching/case", json=case, timeout=120)
+resp.raise_for_status()
+data = resp.json()
+
+match = data["match_summary"]
+if match["found_in_top_3"]:
+    print(f"✓ Correct! Ranked #{match['rank']}")
+else:
+    print(f"✗ Not in top 3. Board's top diagnosis: {match['board_top_3'][0]}")
+```
