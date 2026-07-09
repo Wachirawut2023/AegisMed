@@ -45,8 +45,17 @@ async def chat(
     if config.demo_mode():
         if agent_name == "intake":
             return demo_data.DEMO_INTAKE
-        if agent_name == "synthesis":
+        if agent_name == "draft_synthesis":
+            return demo_data.DEMO_DRAFT_SYNTHESIS
+        if agent_name == "final_synthesis":
             return demo_data.DEMO_SYNTHESIS
+        if agent_name.startswith("peer_review:"):
+            specialty = agent_name.split(":", 1)[1]
+            return demo_data.DEMO_PEER_REVIEW.get(
+                specialty, "Demo mode: no sample rebuttal available for this agent.",
+            )
+        if agent_name == "followup":
+            return demo_data.DEMO_FOLLOWUP_ANSWER
         return demo_data.DEMO_SPECIALIST_OPINIONS.get(
             agent_name,
             "Demo mode: no sample answer available for this agent.",

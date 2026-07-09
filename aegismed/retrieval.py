@@ -74,7 +74,7 @@ def _parse_json(text: str) -> dict:
     }
 
 
-def _build_dossier(phenotypes: list[str], candidates: list[dict]) -> str:
+def build_dossier(phenotypes: list[str], candidates: list[dict]) -> str:
     """A compact, cited evidence block to prepend to each specialist's case."""
     if not candidates and not phenotypes:
         return ""
@@ -118,5 +118,5 @@ async def retrieve(age: str, sex: str, symptoms: str, history: str, labs: str) -
         "phenotypes": phenotypes,
         "candidates": candidates,
         "relevant_specialties": relevant,
-        "dossier": _build_dossier(phenotypes, candidates),
+        "dossier": build_dossier(phenotypes, candidates),
     }

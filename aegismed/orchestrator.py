@@ -4,12 +4,16 @@ Flow:
   1. Turn the form fields into one readable case description.
   2. Ask all specialists AT THE SAME TIME (asyncio.as_completed), because none
      of them needs to see another's answer — just like independent consults.
-  3. Hand every opinion to the synthesis agent (the "board chair"), which
-     produces the final ranked differential diagnosis for the physician.
+  3. The board chair drafts a PRELIMINARY differential from those opinions.
+  4. Every specialist reviews the draft (and each other's round-1 opinions)
+     and can rebut or refine it — a real deliberation round, not just
+     parallel independent opinions.
+  5. The board chair issues the FINAL differential in light of that peer
+     review.
 
 `diagnose_stream()` is the one real implementation of this flow — it's an
-async generator that yields a progress event as each specialist finishes,
-then a final event carrying the complete result (used by the streaming
+async generator that yields a progress event as each stage completes, then a
+final event carrying the complete result (used by the streaming
 `/api/diagnose/stream` endpoint). `diagnose()` is a thin wrapper that drains
 the generator and returns just the final result, for callers that don't
 care about progress (the plain `/api/diagnose` endpoint, the eval harness,
@@ -20,7 +24,13 @@ import asyncio
 
 from . import config, guidelines, knowledge, llm
 from .demo_data import DEMO_BANNER
-from .specialists import SPECIALISTS, SYNTHESIS_PROMPT, specialist_prompt, synthesis_prompt
+from .specialists import (
+    SPECIALISTS,
+    SYNTHESIS_PROMPT,
+    peer_review_prompt,
+    specialist_prompt,
+    synthesis_prompt,
+)
 
 # Supported practice regions (Phase 3e geographic expansion). Unrecognized
 # values fall back to "us" — see docs/ROADMAP.md Phase 3e for the full design.
@@ -83,6 +93,15 @@ async def _run_specialist(name: str, region: str, grounded_case: str) -> tuple[s
     return name, text
 
 
+async def _run_peer_review(name: str, region: str, peer_review_input: str) -> tuple[str, str]:
+    """Run one specialist's round-2 rebuttal of the draft and tag it with its name."""
+    text = await llm.chat(
+        peer_review_prompt(name, region), peer_review_input,
+        agent_name=f"peer_review:{name}", max_tokens=400,
+    )
+    return name, text
+
+
 async def diagnose_stream(
     age: str, sex: str, symptoms: str, history: str, labs: str,
     clarifications: str = "", region: str = _DEFAULT_REGION,
@@ -91,8 +110,14 @@ async def diagnose_stream(
 
     Yields dicts with an "event" key:
       - {"event": "specialist_done", "specialty", "completed", "total"} —
-        once per specialist, in completion order (not roster order).
-      - {"event": "synthesis_done"} — once the board chair has finished.
+        once per specialist, round 1 (independent opinions), in completion
+        order (not roster order).
+      - {"event": "draft_synthesis_done"} — once the chair's preliminary
+        differential is ready.
+      - {"event": "peer_review_done", "specialty", "completed", "total"} —
+        once per specialist, round 2 (reviewing the draft), in completion order.
+      - {"event": "final_synthesis_done"} — once the chair's final
+        differential (post-peer-review) is ready.
       - {"event": "final", "data": {...}} — the same dict diagnose() returns,
         always the last event yielded.
     """
@@ -130,8 +155,9 @@ async def diagnose_stream(
         {"specialty": name, "opinion": opinions_by_name[name]} for name in names
     ]
 
-    # Step 2: the board chair merges the specialists' opinions into one briefing.
-    # The roster is passed in so the chair adapts if specialties are added/removed.
+    # Step 2: the board chair drafts a PRELIMINARY differential from the
+    # independent round-1 opinions. The roster is passed in so the chair
+    # adapts if specialties are added/removed.
     synthesis_input = (
         grounded_case
         + f"\nBOARD ROSTER: {', '.join(names)}\n"
@@ -141,13 +167,55 @@ async def diagnose_stream(
             for item in specialist_opinions
         )
     )
-    synthesis = await llm.chat(
-        synthesis_prompt(region), synthesis_input, agent_name="synthesis",
+    draft_synthesis = await llm.chat(
+        synthesis_prompt(region), synthesis_input, agent_name="draft_synthesis",
         max_tokens=2048,
     )
-    yield {"event": "synthesis_done"}
+    yield {"event": "draft_synthesis_done"}
 
-    # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
+    # Step 3: peer review — every specialist sees the draft (and every other
+    # specialist's round-1 opinion) and can rebut or refine it, in parallel,
+    # same fan-out pattern as round 1.
+    peer_review_input = (
+        synthesis_input
+        + "\n\nCHAIR'S DRAFT DIFFERENTIAL (preliminary — critique or confirm it):\n"
+        + draft_synthesis
+    )
+    pr_tasks = [
+        asyncio.create_task(_run_peer_review(name, region, peer_review_input))
+        for name in names
+    ]
+    peer_reviews_by_name: dict[str, str] = {}
+    for finished in asyncio.as_completed(pr_tasks):
+        name, text = await finished
+        peer_reviews_by_name[name] = text
+        yield {
+            "event": "peer_review_done",
+            "specialty": name,
+            "completed": len(peer_reviews_by_name),
+            "total": len(names),
+        }
+    peer_review = [
+        {"specialty": name, "comment": peer_reviews_by_name[name]} for name in names
+    ]
+
+    # Step 4: the chair issues the FINAL differential, having read the
+    # round-2 peer review. Same prompt/format as the draft pass — only the
+    # input differs.
+    final_synthesis_input = (
+        synthesis_input
+        + "\n\nYOUR OWN DRAFT DIFFERENTIAL FROM THE FIRST PASS:\n" + draft_synthesis
+        + "\n\nROUND-2 PEER REVIEW FROM THE BOARD (revise your draft in light "
+          "of this; produce your FINAL differential, not a repeat of the draft):\n\n"
+        + "\n\n".join(f"--- {p['specialty']} ---\n{p['comment']}" for p in peer_review)
+    )
+    synthesis = await llm.chat(
+        synthesis_prompt(region), final_synthesis_input, agent_name="final_synthesis",
+        max_tokens=2048,
+    )
+    yield {"event": "final_synthesis_done"}
+
+    # Step 5: attach VERIFIED citations for the diagnoses the board concluded.
     diagnoses = knowledge.extract_diagnoses(synthesis)
     references = knowledge.references_for(diagnoses)
     guideline_references = guidelines.guidelines_for(diagnoses, region=region)
@@ -169,6 +237,10 @@ async def diagnose_stream(
             },
             "specialist_opinions": specialist_opinions,
             "synthesis": synthesis,
+            "deliberation": {
+                "draft_synthesis": draft_synthesis,
+                "peer_review": peer_review,
+            },
         },
     }
 

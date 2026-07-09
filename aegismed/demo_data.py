@@ -182,6 +182,108 @@ DEMO_SPECIALIST_OPINIONS: dict[str, str] = {
     ),
 }
 
+# The board chair's PRELIMINARY draft, before the peer-review round below
+# sharpens it into the final DEMO_SYNTHESIS — deliberately more hedged, so
+# demo mode visibly shows the draft-to-final deliberation process.
+DEMO_DRAFT_SYNTHESIS = (
+    "**Ranked differential diagnosis:**\n"
+    "1. Fabry disease [RARE] — likelihood: moderate-high. The childhood-onset "
+    "burning pain, reduced sweating, skin lesions, and family history are "
+    "suggestive, though renal and cardiac findings are still mild.\n"
+    "2. Idiopathic small-fiber neuropathy — likelihood: moderate. Could "
+    "explain the pain alone, but doesn't account for the skin or family "
+    "findings.\n"
+    "3. Hypertrophic cardiomyopathy — likelihood: low-moderate. Explains the "
+    "ECG in isolation.\n"
+    "4. Autoinflammatory syndrome (e.g. FMF) [RARE] — likelihood: low. "
+    "Raised by one specialist, not yet corroborated by inflammatory "
+    "markers.\n\n"
+    "**Where the specialists agree:** Several specialists independently "
+    "flagged Fabry disease.\n\n"
+    "**Where they disagree:** Cardiology wants imaging before anchoring on a "
+    "single diagnosis; others feel the case is already fairly convergent.\n\n"
+    "**Single most valuable next test:** Alpha-galactosidase A enzyme "
+    "activity, pending confirmation from the board.\n\n"
+    "**Immediate safety actions:** Baseline renal function; nothing "
+    "emergent identified yet.\n\n"
+    "**Do-not-miss warning:** A treatable inherited disease should not be "
+    "missed, though further specialist input is needed to confirm."
+)
+
+# Canned round-2 rebuttals for demo mode — short, in the peer-review format
+# (Stance / What should change / Anything unsafe to miss), distinct from the
+# full round-1 write-ups in DEMO_SPECIALIST_OPINIONS above.
+DEMO_PEER_REVIEW: dict[str, str] = {
+    "Cardiology": (
+        "**Stance:** refine — the draft undersells how specific LVH + renal "
+        "involvement + neuropathic pain is at this age.\n"
+        "**What should change (if anything):** Raise Fabry disease to "
+        "'high' likelihood, not moderate-high; the triad is close to "
+        "pathognomonic once athlete's heart and hypertension are excluded.\n"
+        "**Anything unsafe to miss:** none beyond what's already flagged — "
+        "but don't delay echo/cardiac MRI while awaiting enzyme results."
+    ),
+    "Neurology": (
+        "**Stance:** refine — agree Fabry should rank first, but the draft "
+        "doesn't cite the childhood-onset-plus-hypohidrosis combination "
+        "strongly enough.\n"
+        "**What should change (if anything):** Note that 14 years of "
+        "'growing pains' misdiagnosis is itself a pattern specific to "
+        "Fabry, not generic small-fiber neuropathy.\n"
+        "**Anything unsafe to miss:** none."
+    ),
+    "Medical Genetics": (
+        "**Stance:** disagree with the draft's hedging — the X-linked "
+        "family history (affected maternal uncle, mildly symptomatic "
+        "mother) makes this a near-diagnostic pattern, not merely "
+        "'suggestive.'\n"
+        "**What should change (if anything):** Move Fabry disease to "
+        "likelihood 'high' and lead with the family pedigree as the "
+        "strongest single piece of evidence.\n"
+        "**Anything unsafe to miss:** Untreated Fabry has effective "
+        "therapy — under-weighting the diagnosis risks a preventable delay."
+    ),
+    "Immunology & Rheumatology": (
+        "**Stance:** agree — the draft correctly keeps autoinflammatory "
+        "syndrome low; the fixed angiokeratoma-like lesions and normal "
+        "inflammatory markers argue against it.\n"
+        "**What should change (if anything):** none from my domain.\n"
+        "**Anything unsafe to miss:** none."
+    ),
+    "Infectious Disease": (
+        "**Stance:** agree — no infectious cause fits this presentation; "
+        "the draft is right to leave it out of the top differential.\n"
+        "**What should change (if anything):** none.\n"
+        "**Anything unsafe to miss:** none."
+    ),
+    "Endocrinology & Metabolism": (
+        "**Stance:** agree — nothing endocrine-specific to add; correctly "
+        "notes Fabry is a metabolic disease better owned by Genetics.\n"
+        "**What should change (if anything):** none.\n"
+        "**Anything unsafe to miss:** none."
+    ),
+    "Hematology-Oncology": (
+        "**Stance:** agree — no hematologic or oncologic findings in this "
+        "case; the draft correctly excludes this domain.\n"
+        "**What should change (if anything):** none.\n"
+        "**Anything unsafe to miss:** none."
+    ),
+}
+
+# Canned follow-up-question answer for demo mode. Like every other demo-mode
+# branch, this ignores the actual question text — demo mode is explicitly
+# canned/non-comprehending everywhere else in this app too.
+DEMO_FOLLOWUP_ANSWER = (
+    "If the creatinine had instead continued to rise despite hydration, "
+    "that would argue more strongly for early Fabry nephropathy rather than "
+    "a benign, reversible cause — I'd move up baseline 24-hour urine protein "
+    "and a renal ultrasound alongside the alpha-galactosidase A assay "
+    "already recommended, and would not wait for the enzyme result before "
+    "involving nephrology. It would not change the board's top diagnosis, "
+    "but it would raise the urgency of the renal workup in the 'Immediate "
+    "safety actions' section."
+)
+
 DEMO_SYNTHESIS = (
     "**Ranked differential diagnosis:**\n"
     "1. Fabry disease [RARE] — likelihood: high. Childhood-onset burning "

@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
-from . import __version__, cases, config, intake, knowledge, llm, orchestrator
+from . import __version__, cases, config, followup, intake, knowledge, llm, orchestrator
 from .demo_data import EXAMPLE_CASE
 
 TAGS_METADATA = [
@@ -66,6 +66,37 @@ class CommentRequest(BaseModel):
     # A team comment on an existing case.
     author: str = Field(..., min_length=1, max_length=100)
     text: str = Field(..., min_length=1, max_length=1000)
+
+
+class SpecialistOpinionIn(BaseModel):
+    specialty: str = Field(..., max_length=100)
+    opinion: str = Field(..., max_length=8000)
+
+
+class EvidenceCandidateIn(BaseModel):
+    name: str = Field(..., max_length=200)
+    links: list[dict] = Field(default_factory=list)
+
+
+class EvidenceIn(BaseModel):
+    phenotypes: list[str] = Field(default_factory=list)
+    candidates: list[EvidenceCandidateIn] = Field(default_factory=list)
+
+
+class QAPair(BaseModel):
+    question: str = Field(..., min_length=1, max_length=2000)
+    answer: str = Field(..., min_length=1, max_length=4000)
+
+
+class FollowupRequest(PatientCase):
+    # The board's existing reasoning, sent back by the client (no server-side
+    # case lookup required) so the follow-up answer is grounded in exactly
+    # what the physician is looking at.
+    synthesis: str = Field(..., min_length=1, max_length=20000)
+    specialist_opinions: list[SpecialistOpinionIn] = Field(default_factory=list)
+    evidence: EvidenceIn = Field(default_factory=EvidenceIn)
+    question: str = Field(..., min_length=3, max_length=2000)
+    previous_qa: list[QAPair] = Field(default_factory=list, max_length=20)
 
 
 @app.get("/", tags=["meta"], summary="Web UI", include_in_schema=False)
@@ -185,10 +216,11 @@ async def diagnose(case: PatientCase) -> dict:
     summary="Convene the board (streaming)",
     description=(
         "Same as /api/diagnose, but streams progress via Server-Sent Events "
-        "as each specialist finishes, so the UI isn't a blank spinner for the "
-        "full round-trip. Each line is `data: <json>\\n\\n`; events are "
-        "{event: specialist_done|synthesis_done|error} while running, and a "
-        "final {event: final, data: {...same shape as /api/diagnose...}} once done."
+        "as each stage finishes, so the UI isn't a blank spinner for the full "
+        "round-trip. Each line is `data: <json>\\n\\n`; events are {event: "
+        "specialist_done|draft_synthesis_done|peer_review_done|"
+        "final_synthesis_done|error} while running, and a final "
+        "{event: final, data: {...same shape as /api/diagnose...}} once done."
     ),
 )
 async def diagnose_stream(case: PatientCase) -> StreamingResponse:
@@ -212,6 +244,38 @@ async def diagnose_stream(case: PatientCase) -> StreamingResponse:
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache"},
     )
+
+
+@app.post(
+    "/api/diagnose/followup",
+    tags=["diagnosis"],
+    summary="Ask a follow-up question",
+    description=(
+        "After the board delivers its differential, ask a follow-up question "
+        "(e.g. a 'what if the labs also showed X?' hypothetical). Answered by "
+        "one grounded model call using the case, the board's specialist "
+        "opinions and final synthesis (sent back by the client — no server-"
+        "side case lookup required), and any prior follow-up exchanges."
+    ),
+)
+async def diagnose_followup(req: FollowupRequest) -> dict:
+    try:
+        answer = await followup.answer_followup(
+            age=req.age,
+            sex=req.sex,
+            symptoms=req.symptoms,
+            history=req.history,
+            labs=req.labs,
+            clarifications=req.clarifications,
+            synthesis=req.synthesis,
+            specialist_opinions=[o.model_dump() for o in req.specialist_opinions],
+            evidence=req.evidence.model_dump(),
+            question=req.question,
+            previous_qa=[qa.model_dump() for qa in req.previous_qa],
+        )
+        return {"answer": answer, "demo_mode": config.demo_mode()}
+    except llm.LLMError as err:
+        raise HTTPException(status_code=502, detail=str(err)) from err
 
 
 @app.post(

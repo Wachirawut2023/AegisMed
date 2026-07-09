@@ -60,6 +60,7 @@ Runs the full board and returns everything the UI renders. Response shape:
 | `region` | string | The practice region actually used (`"us"`/`"uk"`/`"eu"`) — echoes back the validated request field. |
 | `evidence` | `{phenotypes, candidates}` | What the retrieval step flagged and looked up. |
 | `routing` | `{selected_specialties, skipped_specialties, total_specialties}` | Which specialists smart routing convened. |
+| `deliberation` | `{draft_synthesis, peer_review}` | The board's process: the chair's preliminary draft, and each specialist's round-2 rebuttal (`peer_review` is an array of `{specialty, comment}`) before the chair issued the final `synthesis` above. Optional UI transparency — `synthesis` itself already reflects the outcome. |
 | `disclaimer` | string | The clinical-use disclaimer — display it wherever you surface output. |
 | `demo_mode` | bool | `true` when running on canned sample output (no API key configured). |
 | `demo_banner` | string | Banner text to show in demo mode. |
@@ -120,6 +121,84 @@ curl -s -X POST http://localhost:8000/api/diagnose \
         "symptoms": "burning pain in hands and feet since childhood, decreased sweating",
         "region": "uk"
       }' | jq '.region, .guideline_references[0].links[0]'
+```
+
+---
+
+## `POST /api/diagnose/stream` — convene the board (streaming)
+
+Same request/response as `/api/diagnose`, but streams progress as Server-Sent
+Events instead of waiting silently for the full ~1-minute round-trip. Each
+line is `data: <json>\n\n`. Events, in order:
+
+| `event` | Fields | Meaning |
+|---|---|---|
+| `specialist_done` | `specialty, completed, total` | One round-1 specialist finished (completion order, not roster order). |
+| `draft_synthesis_done` | — | The chair's preliminary differential is ready. |
+| `peer_review_done` | `specialty, completed, total` | One specialist finished reviewing the draft (round 2). |
+| `final_synthesis_done` | — | The chair's final differential (post-peer-review) is ready. |
+| `final` | `data` | The complete result — identical shape to `/api/diagnose`'s response. Always the last event. |
+| `error` | `message` | A model/network failure mid-stream (mirrors `/api/diagnose`'s `502`, but the HTTP status is already `200` since streaming started — check for this event). |
+
+### Python (httpx)
+
+```python
+import json
+import httpx
+
+case = {"symptoms": "burning pain in hands and feet since childhood, decreased sweating"}
+
+with httpx.stream("POST", "http://localhost:8000/api/diagnose/stream", json=case, timeout=120) as resp:
+    for line in resp.iter_lines():
+        if not line.startswith("data:"):
+            continue
+        event = json.loads(line[len("data:"):].strip())
+        if event["event"] == "final":
+            print(event["data"]["synthesis"])
+        elif event["event"] == "error":
+            raise RuntimeError(event["message"])
+        else:
+            print(event["event"], event.get("specialty", ""))
+```
+
+---
+
+## `POST /api/diagnose/followup` — ask a follow-up question
+
+After the board delivers its differential, ask a follow-up question (e.g. a
+"what if the labs also showed X?" hypothetical) grounded in the case and the
+board's own reasoning. Stateless — no `case_id` lookup — so send back the
+`synthesis`, `specialist_opinions`, and `evidence` you already received from
+`/api/diagnose` (or the `final` event of `/api/diagnose/stream`).
+
+**Request:** `PatientCase` plus:
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `synthesis` | string | **yes** | The board's final synthesis, from a prior `/api/diagnose` call. |
+| `specialist_opinions` | array of `{specialty, opinion}` | no | From the same prior call — gives the richest grounding. |
+| `evidence` | `{phenotypes, candidates}` | no | From the same prior call. |
+| `question` | string | **yes** | 3–2000 chars. |
+| `previous_qa` | array of `{question, answer}` | no | Prior exchanges in this consult, for multi-turn follow-ups. Max 20. |
+
+**Response:**
+
+| Field | Type | Meaning |
+|---|---|---|
+| `answer` | string | The follow-up answer, under 200 words. |
+| `demo_mode` | bool | `true` when running on canned sample output. |
+
+### curl
+
+```bash
+curl -s -X POST http://localhost:8000/api/diagnose/followup \
+  -H "Content-Type: application/json" \
+  -d '{
+        "symptoms": "burning pain in hands and feet since childhood, decreased sweating",
+        "synthesis": "... (from a prior /api/diagnose response) ...",
+        "specialist_opinions": [],
+        "question": "What if the creatinine had continued to rise despite hydration?"
+      }' | jq '.answer'
 ```
 
 ---

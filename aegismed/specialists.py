@@ -151,6 +151,31 @@ Be honest about uncertainty. You are assisting a licensed physician, not a patie
 """
 
 
+_PEER_REVIEW_RULES = """
+The board chair has read every specialist's round-1 opinion (including yours,
+quoted below with the others') and drafted a PRELIMINARY differential. Your job
+now is quality control, not a second full report:
+- If you still agree with how the draft handles your domain, say so briefly —
+  do not restate your round-1 findings.
+- If you'd weight a diagnosis differently, spot a gap, or see a safety concern
+  the draft misses, say exactly what should change and why, tied to the case.
+- Do not introduce a new work-up unless it directly rebuts the draft or another
+  specialist's round-1 opinion.
+- Answer in under 120 words using this exact structure:
+  **Stance:** agree / refine / disagree — one line why.
+  **What should change (if anything):** ...
+  **Anything unsafe to miss:** ... (or "none").
+"""
+
+
+def peer_review_prompt(name: str, region: str = "us") -> str:
+    """A specialist's persona (reused from SPECIALISTS, minus the round-1
+    report format) plus the short round-2 rebuttal rules and regional context.
+    """
+    persona = SPECIALISTS[name].removesuffix(_COMMON_RULES)
+    return persona + _PEER_REVIEW_RULES + _REGIONAL_CONTEXT.get(region, _REGIONAL_CONTEXT["us"])
+
+
 def specialist_prompt(name: str, region: str = "us") -> str:
     """A specialist's base prompt plus regional practice context.
 

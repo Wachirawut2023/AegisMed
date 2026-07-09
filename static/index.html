@@ -205,6 +205,16 @@
       <div class="opinion" id="synthesis"></div>
     </div>
 
+    <div class="card" id="followupCard">
+      <h2>💬 Ask a follow-up question</h2>
+      <div id="followupThread"></div>
+      <textarea id="followupQuestion" rows="2" placeholder="e.g. What if the labs also showed X?"></textarea>
+      <div class="actions">
+        <button class="primary" id="followupAsk">Ask the board</button>
+      </div>
+      <div class="status" id="followupStatus"></div>
+    </div>
+
     <div class="card" id="comparisonCard" style="border:2px solid var(--accent-soft);">
       <h2>📊 Your diagnosis vs. the board's</h2>
       <div id="comparison"></div>
@@ -233,6 +243,11 @@
     <details class="card">
       <summary style="cursor:pointer;font-weight:600;">🔎 Reference evidence considered by the board</summary>
       <div id="evidence" style="margin-top:12px;"></div>
+    </details>
+
+    <details class="card" id="deliberationCard">
+      <summary style="cursor:pointer;font-weight:600;">🗣️ Board deliberation (draft → peer review → final)</summary>
+      <div id="deliberation" style="margin-top:12px;"></div>
     </details>
 
     <h2 style="margin:22px 0 12px;">Specialist opinions</h2>
@@ -306,12 +321,22 @@ async function loadCase(caseId) {
     renderReferences(output.references || []);
     renderGuidelines(output.guideline_references || []);
     renderEvidence(output.evidence || {});
+    renderDeliberation(output.deliberation || null);
     renderRouting(output.routing || null);
     renderComparison(output.match_summary || null);
     renderPrintHeader(output, {});
     $("specialists").innerHTML = output.specialist_opinions.map(s =>
       `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
     ).join("");
+
+    // A loaded case's original symptoms/history/labs were never persisted
+    // (only the board's output was), so follow-up Q&A can't be grounded
+    // correctly here — clear any stale state from an earlier live run rather
+    // than risk answering against the wrong case.
+    currentBoardOutput = null;
+    currentClarifications = "";
+    followupHistory = [];
+    renderFollowupThread();
 
     // Show comments if any
     if (caseData.team_comments && caseData.team_comments.length) {
@@ -584,6 +609,21 @@ function renderEvidence(ev) {
   $("evidence").innerHTML = html || "<span style='color:var(--muted)'>No additional evidence retrieved.</span>";
 }
 
+function renderDeliberation(delib) {
+  const card = $("deliberationCard");
+  if (!delib) { card.classList.add("hidden"); return; }
+  card.classList.remove("hidden");
+  let html = `<h4 style="margin:0 0 6px;">Chair's initial draft</h4>
+    <div class="opinion">${renderText(delib.draft_synthesis)}</div>
+    <h4 style="margin:16px 0 6px;">Round-2 peer review</h4>`;
+  html += (delib.peer_review || []).map(p => `
+    <div style="margin-bottom:10px;">
+      <strong>${escapeHtml(p.specialty)}</strong>
+      <div class="opinion" style="font-size:.85rem;">${renderText(p.comment)}</div>
+    </div>`).join("");
+  $("deliberation").innerHTML = html;
+}
+
 // Teaching mode: toggle the expected diagnosis field
 $("teachingMode").addEventListener("change", (e) => {
   $("teachingFields").classList.toggle("hidden", !e.target.checked);
@@ -629,6 +669,13 @@ async function runDiagnosis(clarifications) {
   $("status").innerHTML = '<span class="spinner"></span>The specialist board is reviewing the case…';
   $("results").classList.add("hidden");
 
+  // Starting a fresh consult: any follow-up thread from a previous run no
+  // longer applies.
+  currentClarifications = clarifications;
+  followupHistory = [];
+  renderFollowupThread();
+  $("followupStatus").textContent = "";
+
   try {
     const body = { ...readCase(), clarifications };
     let data;
@@ -650,7 +697,12 @@ async function runDiagnosis(clarifications) {
         if (event.event === "specialist_done") {
           $("status").innerHTML = `<span class="spinner"></span>${escapeHtml(event.specialty)} done — `
             + `${event.completed} of ${event.total} specialists…`;
-        } else if (event.event === "synthesis_done") {
+        } else if (event.event === "draft_synthesis_done") {
+          $("status").innerHTML = '<span class="spinner"></span>Chair drafted a preliminary differential — sending it back to the board for peer review…';
+        } else if (event.event === "peer_review_done") {
+          $("status").innerHTML = `<span class="spinner"></span>${escapeHtml(event.specialty)} reviewed the draft — `
+            + `${event.completed} of ${event.total}…`;
+        } else if (event.event === "final_synthesis_done") {
           $("status").innerHTML = '<span class="spinner"></span>The board chair is finalizing the differential…';
         }
       });
@@ -664,6 +716,7 @@ async function runDiagnosis(clarifications) {
     renderReferences(data.references || []);
     renderGuidelines(data.guideline_references || []);
     renderEvidence(data.evidence || {});
+    renderDeliberation(data.deliberation || null);
     renderRouting(data.routing || null);
     renderComparison(data.match_summary || null);
     renderPrintHeader(data, readCase());
@@ -680,6 +733,56 @@ async function runDiagnosis(clarifications) {
     $("run").disabled = false;
   }
 }
+
+let followupHistory = [];       // [{question, answer}, ...] for this consult
+let currentClarifications = ""; // captured so follow-ups use the same clarifications the board saw
+
+function renderFollowupThread() {
+  $("followupThread").innerHTML = followupHistory.map(qa => `
+    <div style="margin-bottom:10px;">
+      <div><strong>Q:</strong> ${escapeHtml(qa.question)}</div>
+      <div class="opinion"><strong>A:</strong> ${renderText(qa.answer)}</div>
+    </div>`).join("");
+}
+
+$("followupAsk").addEventListener("click", async () => {
+  const question = $("followupQuestion").value.trim();
+  if (!question) return;
+  if (!currentBoardOutput) {
+    $("followupStatus").innerHTML = '<span class="error">Follow-up questions need a freshly run diagnosis (not yet available for a loaded case).</span>';
+    return;
+  }
+  $("followupAsk").disabled = true;
+  $("followupStatus").innerHTML = '<span class="spinner"></span>The board is considering your question…';
+  try {
+    const res = await fetch("/api/diagnose/followup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...readCase(),
+        clarifications: currentClarifications,
+        synthesis: currentBoardOutput.synthesis,
+        specialist_opinions: currentBoardOutput.specialist_opinions,
+        evidence: currentBoardOutput.evidence,
+        question,
+        previous_qa: followupHistory,
+      }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || ("Server error " + res.status));
+    }
+    const data = await res.json();
+    followupHistory.push({ question, answer: data.answer });
+    $("followupQuestion").value = "";
+    renderFollowupThread();
+    $("followupStatus").textContent = "";
+  } catch (e) {
+    $("followupStatus").innerHTML = '<span class="error">' + e.message + "</span>";
+  } finally {
+    $("followupAsk").disabled = false;
+  }
+});
 </script>
 </body>
 </html>
