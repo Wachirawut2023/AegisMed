@@ -1,0 +1,1820 @@
+[
+  {
+    "label": "Fine-tuned",
+    "model": "accounts/wachirawut2002-fqt88/models/aegismed-gemma-tuned#accounts/wachirawut2002-fqt88/deployments/nqid2132",
+    "rows": [
+      {
+        "id": "cupcase-8",
+        "source": "CUPCase",
+        "expected": "Meningioma",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 23.21
+      },
+      {
+        "id": "rarebench-mme-1",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.33
+      },
+      {
+        "id": "rarebench-mme-14",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 24.24
+      },
+      {
+        "id": "rarebench-mme-6",
+        "source": "RareBench/MME",
+        "expected": "Shprintzen-Goldberg syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.65
+      },
+      {
+        "id": "rarebench-hms-13",
+        "source": "RareBench/HMS",
+        "expected": "Antisynthetase syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.23
+      },
+      {
+        "id": "rarebench-mme-13",
+        "source": "RareBench/MME",
+        "expected": "SHORT syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.27
+      },
+      {
+        "id": "rarebench-lirical-7",
+        "source": "RareBench/LIRICAL",
+        "expected": "Joubert syndrome 30",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.73
+      },
+      {
+        "id": "rarebench-ramedis-0",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Ornithine transcarbamylase deficiency",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.43
+      },
+      {
+        "id": "cupcase-14",
+        "source": "CUPCase",
+        "expected": "Anti-MDA5 positive dermatomyositis",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 24.03
+      },
+      {
+        "id": "rarebench-mme-0",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.3
+      },
+      {
+        "id": "rarebench-ramedis-1",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.11
+      },
+      {
+        "id": "rarebench-lirical-8",
+        "source": "RareBench/LIRICAL",
+        "expected": "Bleeding disorder, platelet-type, 15",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.73
+      },
+      {
+        "id": "rarebench-ramedis-6",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glycogen storage disease Ia",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.22
+      },
+      {
+        "id": "rarebench-ramedis-9",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Smith-Lemli-Opitz syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.56
+      },
+      {
+        "id": "rarebench-hms-7",
+        "source": "RareBench/HMS",
+        "expected": "Takayasu arteritis",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.54
+      },
+      {
+        "id": "cupcase-9",
+        "source": "CUPCase",
+        "expected": "Giant cell arteritis (GCA)",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 23.78
+      },
+      {
+        "id": "rarebench-lirical-14",
+        "source": "RareBench/LIRICAL",
+        "expected": "Brachydactyly-short stature-retinitis pigmentosa syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.15
+      },
+      {
+        "id": "rarebench-lirical-11",
+        "source": "RareBench/LIRICAL",
+        "expected": "Oliver-Mcfarlane syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.73
+      },
+      {
+        "id": "rarebench-hms-3",
+        "source": "RareBench/HMS",
+        "expected": "Primary Sj\u00f6gren syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 22.93
+      },
+      {
+        "id": "rarebench-lirical-2",
+        "source": "RareBench/LIRICAL",
+        "expected": "Bamforth-Lazarus syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.0
+      },
+      {
+        "id": "rarebench-hms-8",
+        "source": "RareBench/HMS",
+        "expected": "Systemic sclerosi",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.24
+      },
+      {
+        "id": "rarebench-ramedis-12",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Canavan disease",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 22.43
+      },
+      {
+        "id": "rarebench-mme-3",
+        "source": "RareBench/MME",
+        "expected": "Ataxia-intellectual disability-oculomotor apraxia-cerebellar cysts syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.09
+      },
+      {
+        "id": "rarebench-lirical-13",
+        "source": "RareBench/LIRICAL",
+        "expected": "Recurrent metabolic encephalomyopathic crises-rhabdomyolysis-cardiac arrhythmia-intellectual disability syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.27
+      },
+      {
+        "id": "rarebench-lirical-0",
+        "source": "RareBench/LIRICAL",
+        "expected": "Cleidocranial dysplasia",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.66
+      },
+      {
+        "id": "rarebench-ramedis-14",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Citrullinemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.4
+      },
+      {
+        "id": "rarebench-ramedis-13",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glutaric acidemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.26
+      },
+      {
+        "id": "cupcase-1",
+        "source": "CUPCase",
+        "expected": "metastatic melanoma",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 24.82
+      },
+      {
+        "id": "rarebench-lirical-12",
+        "source": "RareBench/LIRICAL",
+        "expected": "Myasthenic syndrome, congenital, 8",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.85
+      },
+      {
+        "id": "rarebench-mme-11",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.37
+      },
+      {
+        "id": "rarebench-ramedis-5",
+        "source": "RareBench/RAMEDIS",
+        "expected": "X-linked hypophosphatemia",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.83
+      },
+      {
+        "id": "cupcase-7",
+        "source": "CUPCase",
+        "expected": "Acute left adrenal infarction",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 22.32
+      },
+      {
+        "id": "cupcase-11",
+        "source": "CUPCase",
+        "expected": "Intra-abdominal desmoid-type fibromatosis",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 22.29
+      },
+      {
+        "id": "rarebench-mme-4",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.35
+      },
+      {
+        "id": "cupcase-6",
+        "source": "CUPCase",
+        "expected": "High-grade serous ovarian cancer (pT3bN1M0)",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 26.34
+      },
+      {
+        "id": "rarebench-ramedis-7",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.7
+      },
+      {
+        "id": "rarebench-hms-6",
+        "source": "RareBench/HMS",
+        "expected": "Granulomatosis with polyangiitis",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.21
+      },
+      {
+        "id": "rarebench-mme-10",
+        "source": "RareBench/MME",
+        "expected": "Microcephaly 2, primary, autosomal recessive, with or without cortical malformations",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.17
+      },
+      {
+        "id": "rarebench-lirical-3",
+        "source": "RareBench/LIRICAL",
+        "expected": "CODAS syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.33
+      },
+      {
+        "id": "rarebench-mme-8",
+        "source": "RareBench/MME",
+        "expected": "Cataract-growth hormone deficiency-sensory neuropathy-sensorineural hearing loss-skeletal dysplasia syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.93
+      },
+      {
+        "id": "rarebench-ramedis-4",
+        "source": "RareBench/RAMEDIS",
+        "expected": "PMM2-CDG",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 22.73
+      },
+      {
+        "id": "rarebench-ramedis-3",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Ornithine transcarbamylase deficiency",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.83
+      },
+      {
+        "id": "rarebench-mme-12",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.42
+      },
+      {
+        "id": "rarebench-ramedis-2",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Medium chain acyl-CoA dehydrogenase deficiency",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.64
+      },
+      {
+        "id": "rarebench-hms-14",
+        "source": "RareBench/HMS",
+        "expected": "Stickler syndrome type 1",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.43
+      },
+      {
+        "id": "rarebench-mme-9",
+        "source": "RareBench/MME",
+        "expected": "Spondylometaphyseal dysplasia, Sedaghatian type",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.64
+      },
+      {
+        "id": "rarebench-lirical-10",
+        "source": "RareBench/LIRICAL",
+        "expected": "Autosomal dominant hyper-IgE syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.55
+      },
+      {
+        "id": "cupcase-10",
+        "source": "CUPCase",
+        "expected": "PCE (Perchloroethylene) intoxication",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 22.31
+      },
+      {
+        "id": "rarebench-lirical-5",
+        "source": "RareBench/LIRICAL",
+        "expected": "Multiple endocrine neoplasia type 1",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 24.87
+      },
+      {
+        "id": "rarebench-hms-4",
+        "source": "RareBench/HMS",
+        "expected": "IgG4 related disease",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.35
+      },
+      {
+        "id": "rarebench-hms-10",
+        "source": "RareBench/HMS",
+        "expected": "Buerger disease",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 25.13
+      },
+      {
+        "id": "cupcase-5",
+        "source": "CUPCase",
+        "expected": "Methanol poisoning",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 23.96
+      },
+      {
+        "id": "cupcase-0",
+        "source": "CUPCase",
+        "expected": "Fibroadenoma in axillary accessory breast",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 22.96
+      },
+      {
+        "id": "rarebench-hms-12",
+        "source": "RareBench/HMS",
+        "expected": "Systemic lupus erythematosus",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.89
+      },
+      {
+        "id": "rarebench-ramedis-10",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glutaric acidemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 19.69
+      },
+      {
+        "id": "cupcase-2",
+        "source": "CUPCase",
+        "expected": "Lightning strike injury",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 25.29
+      },
+      {
+        "id": "rarebench-lirical-6",
+        "source": "RareBench/LIRICAL",
+        "expected": "Galloway-Mowat syndrome 4",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.99
+      },
+      {
+        "id": "cupcase-4",
+        "source": "CUPCase",
+        "expected": "COVID-19-related encephalomyelitis",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 25.74
+      },
+      {
+        "id": "cupcase-3",
+        "source": "CUPCase",
+        "expected": "Hydatid disease",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 22.41
+      },
+      {
+        "id": "rarebench-hms-0",
+        "source": "RareBench/HMS",
+        "expected": "Vasculitis, autoinflammation, immunodeficiency, and hematologic defects syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.22
+      },
+      {
+        "id": "rarebench-hms-5",
+        "source": "RareBench/HMS",
+        "expected": "Familial mediterranean fever",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.1
+      },
+      {
+        "id": "rarebench-hms-1",
+        "source": "RareBench/HMS",
+        "expected": "Spondyloarthropathy, susceptibility to, 1",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.93
+      },
+      {
+        "id": "rarebench-mme-5",
+        "source": "RareBench/MME",
+        "expected": "Microcephaly-Capillary malformation syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.34
+      },
+      {
+        "id": "cupcase-13",
+        "source": "CUPCase",
+        "expected": "de Winter syndrome",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 21.5
+      },
+      {
+        "id": "cupcase-12",
+        "source": "CUPCase",
+        "expected": "Gorlin syndrome",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 23.45
+      },
+      {
+        "id": "rarebench-lirical-9",
+        "source": "RareBench/LIRICAL",
+        "expected": "Recurrent metabolic encephalomyopathic crises-rhabdomyolysis-cardiac arrhythmia-intellectual disability syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.58
+      },
+      {
+        "id": "rarebench-hms-9",
+        "source": "RareBench/HMS",
+        "expected": "Immunoglobulin A vasculitis",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.52
+      },
+      {
+        "id": "rarebench-ramedis-8",
+        "source": "RareBench/RAMEDIS",
+        "expected": "3-hydroxy-3-methylglutaric aciduria",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.23
+      },
+      {
+        "id": "rarebench-mme-2",
+        "source": "RareBench/MME",
+        "expected": "Ataxia-intellectual disability-oculomotor apraxia-cerebellar cysts syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.68
+      },
+      {
+        "id": "rarebench-mme-7",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.21
+      },
+      {
+        "id": "rarebench-hms-11",
+        "source": "RareBench/HMS",
+        "expected": "Familial cold inflammatory syndrome 1",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.18
+      },
+      {
+        "id": "rarebench-lirical-1",
+        "source": "RareBench/LIRICAL",
+        "expected": "Stankiewicz-Isidor syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.1
+      },
+      {
+        "id": "rarebench-ramedis-11",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.07
+      },
+      {
+        "id": "rarebench-lirical-4",
+        "source": "RareBench/LIRICAL",
+        "expected": "Oculocerebrorenal syndrome of Lowe",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.6
+      },
+      {
+        "id": "rarebench-hms-2",
+        "source": "RareBench/HMS",
+        "expected": "Systemic lupus erythematosus",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 25.63
+      }
+    ]
+  },
+  {
+    "label": "Base (Gemma 3)",
+    "model": "accounts/fireworks/models/gemma-3-27b-it#accounts/wachirawut2002-fqt88/deployments/c5sb5mph",
+    "rows": [
+      {
+        "id": "cupcase-8",
+        "source": "CUPCase",
+        "expected": "Meningioma",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 24.84
+      },
+      {
+        "id": "rarebench-mme-1",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.44
+      },
+      {
+        "id": "rarebench-mme-14",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.45
+      },
+      {
+        "id": "rarebench-mme-6",
+        "source": "RareBench/MME",
+        "expected": "Shprintzen-Goldberg syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.52
+      },
+      {
+        "id": "rarebench-hms-13",
+        "source": "RareBench/HMS",
+        "expected": "Antisynthetase syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.03
+      },
+      {
+        "id": "rarebench-mme-13",
+        "source": "RareBench/MME",
+        "expected": "SHORT syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.94
+      },
+      {
+        "id": "rarebench-lirical-7",
+        "source": "RareBench/LIRICAL",
+        "expected": "Joubert syndrome 30",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.06
+      },
+      {
+        "id": "rarebench-ramedis-0",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Ornithine transcarbamylase deficiency",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.25
+      },
+      {
+        "id": "cupcase-14",
+        "source": "CUPCase",
+        "expected": "Anti-MDA5 positive dermatomyositis",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 22.71
+      },
+      {
+        "id": "rarebench-mme-0",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.3
+      },
+      {
+        "id": "rarebench-ramedis-1",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.52
+      },
+      {
+        "id": "rarebench-lirical-8",
+        "source": "RareBench/LIRICAL",
+        "expected": "Bleeding disorder, platelet-type, 15",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.51
+      },
+      {
+        "id": "rarebench-ramedis-6",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glycogen storage disease Ia",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.03
+      },
+      {
+        "id": "rarebench-ramedis-9",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Smith-Lemli-Opitz syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 22.29
+      },
+      {
+        "id": "rarebench-hms-7",
+        "source": "RareBench/HMS",
+        "expected": "Takayasu arteritis",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.18
+      },
+      {
+        "id": "cupcase-9",
+        "source": "CUPCase",
+        "expected": "Giant cell arteritis (GCA)",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 24.53
+      },
+      {
+        "id": "rarebench-lirical-14",
+        "source": "RareBench/LIRICAL",
+        "expected": "Brachydactyly-short stature-retinitis pigmentosa syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.85
+      },
+      {
+        "id": "rarebench-lirical-11",
+        "source": "RareBench/LIRICAL",
+        "expected": "Oliver-Mcfarlane syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.8
+      },
+      {
+        "id": "rarebench-hms-3",
+        "source": "RareBench/HMS",
+        "expected": "Primary Sj\u00f6gren syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 24.43
+      },
+      {
+        "id": "rarebench-lirical-2",
+        "source": "RareBench/LIRICAL",
+        "expected": "Bamforth-Lazarus syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.81
+      },
+      {
+        "id": "rarebench-hms-8",
+        "source": "RareBench/HMS",
+        "expected": "Systemic sclerosi",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.69
+      },
+      {
+        "id": "rarebench-ramedis-12",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Canavan disease",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.88
+      },
+      {
+        "id": "rarebench-mme-3",
+        "source": "RareBench/MME",
+        "expected": "Ataxia-intellectual disability-oculomotor apraxia-cerebellar cysts syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.12
+      },
+      {
+        "id": "rarebench-lirical-13",
+        "source": "RareBench/LIRICAL",
+        "expected": "Recurrent metabolic encephalomyopathic crises-rhabdomyolysis-cardiac arrhythmia-intellectual disability syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.65
+      },
+      {
+        "id": "rarebench-lirical-0",
+        "source": "RareBench/LIRICAL",
+        "expected": "Cleidocranial dysplasia",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.89
+      },
+      {
+        "id": "rarebench-ramedis-14",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Citrullinemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 22.63
+      },
+      {
+        "id": "rarebench-ramedis-13",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glutaric acidemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.54
+      },
+      {
+        "id": "cupcase-1",
+        "source": "CUPCase",
+        "expected": "metastatic melanoma",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 28.71
+      },
+      {
+        "id": "rarebench-lirical-12",
+        "source": "RareBench/LIRICAL",
+        "expected": "Myasthenic syndrome, congenital, 8",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.55
+      },
+      {
+        "id": "rarebench-mme-11",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.36
+      },
+      {
+        "id": "rarebench-ramedis-5",
+        "source": "RareBench/RAMEDIS",
+        "expected": "X-linked hypophosphatemia",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.82
+      },
+      {
+        "id": "cupcase-7",
+        "source": "CUPCase",
+        "expected": "Acute left adrenal infarction",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 22.31
+      },
+      {
+        "id": "cupcase-11",
+        "source": "CUPCase",
+        "expected": "Intra-abdominal desmoid-type fibromatosis",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 21.57
+      },
+      {
+        "id": "rarebench-mme-4",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 19.65
+      },
+      {
+        "id": "cupcase-6",
+        "source": "CUPCase",
+        "expected": "High-grade serous ovarian cancer (pT3bN1M0)",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 23.6
+      },
+      {
+        "id": "rarebench-ramedis-7",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.18
+      },
+      {
+        "id": "rarebench-hms-6",
+        "source": "RareBench/HMS",
+        "expected": "Granulomatosis with polyangiitis",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.31
+      },
+      {
+        "id": "rarebench-mme-10",
+        "source": "RareBench/MME",
+        "expected": "Microcephaly 2, primary, autosomal recessive, with or without cortical malformations",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.21
+      },
+      {
+        "id": "rarebench-lirical-3",
+        "source": "RareBench/LIRICAL",
+        "expected": "CODAS syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.74
+      },
+      {
+        "id": "rarebench-mme-8",
+        "source": "RareBench/MME",
+        "expected": "Cataract-growth hormone deficiency-sensory neuropathy-sensorineural hearing loss-skeletal dysplasia syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.77
+      },
+      {
+        "id": "rarebench-ramedis-4",
+        "source": "RareBench/RAMEDIS",
+        "expected": "PMM2-CDG",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.6
+      },
+      {
+        "id": "rarebench-ramedis-3",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Ornithine transcarbamylase deficiency",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 22.44
+      },
+      {
+        "id": "rarebench-mme-12",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.45
+      },
+      {
+        "id": "rarebench-ramedis-2",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Medium chain acyl-CoA dehydrogenase deficiency",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.24
+      },
+      {
+        "id": "rarebench-hms-14",
+        "source": "RareBench/HMS",
+        "expected": "Stickler syndrome type 1",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 22.44
+      },
+      {
+        "id": "rarebench-mme-9",
+        "source": "RareBench/MME",
+        "expected": "Spondylometaphyseal dysplasia, Sedaghatian type",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.24
+      },
+      {
+        "id": "rarebench-lirical-10",
+        "source": "RareBench/LIRICAL",
+        "expected": "Autosomal dominant hyper-IgE syndrome",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.28
+      },
+      {
+        "id": "cupcase-10",
+        "source": "CUPCase",
+        "expected": "PCE (Perchloroethylene) intoxication",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 22.13
+      },
+      {
+        "id": "rarebench-lirical-5",
+        "source": "RareBench/LIRICAL",
+        "expected": "Multiple endocrine neoplasia type 1",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.93
+      },
+      {
+        "id": "rarebench-hms-4",
+        "source": "RareBench/HMS",
+        "expected": "IgG4 related disease",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.72
+      },
+      {
+        "id": "rarebench-hms-10",
+        "source": "RareBench/HMS",
+        "expected": "Buerger disease",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 24.0
+      },
+      {
+        "id": "cupcase-5",
+        "source": "CUPCase",
+        "expected": "Methanol poisoning",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 26.33
+      },
+      {
+        "id": "cupcase-0",
+        "source": "CUPCase",
+        "expected": "Fibroadenoma in axillary accessory breast",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 22.03
+      },
+      {
+        "id": "rarebench-hms-12",
+        "source": "RareBench/HMS",
+        "expected": "Systemic lupus erythematosus",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.59
+      },
+      {
+        "id": "rarebench-ramedis-10",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glutaric acidemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 19.98
+      },
+      {
+        "id": "cupcase-2",
+        "source": "CUPCase",
+        "expected": "Lightning strike injury",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 23.56
+      },
+      {
+        "id": "rarebench-lirical-6",
+        "source": "RareBench/LIRICAL",
+        "expected": "Galloway-Mowat syndrome 4",
+        "hit": false,
+        "error": "Could not reach Fireworks AI: ",
+        "latency_s": 19.42
+      },
+      {
+        "id": "cupcase-4",
+        "source": "CUPCase",
+        "expected": "COVID-19-related encephalomyelitis",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 22.96
+      },
+      {
+        "id": "cupcase-3",
+        "source": "CUPCase",
+        "expected": "Hydatid disease",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 20.79
+      },
+      {
+        "id": "rarebench-hms-0",
+        "source": "RareBench/HMS",
+        "expected": "Vasculitis, autoinflammation, immunodeficiency, and hematologic defects syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.84
+      },
+      {
+        "id": "rarebench-hms-5",
+        "source": "RareBench/HMS",
+        "expected": "Familial mediterranean fever",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 23.29
+      },
+      {
+        "id": "rarebench-hms-1",
+        "source": "RareBench/HMS",
+        "expected": "Spondyloarthropathy, susceptibility to, 1",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.82
+      },
+      {
+        "id": "rarebench-mme-5",
+        "source": "RareBench/MME",
+        "expected": "Microcephaly-Capillary malformation syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.36
+      },
+      {
+        "id": "cupcase-13",
+        "source": "CUPCase",
+        "expected": "de Winter syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 23.11
+      },
+      {
+        "id": "cupcase-12",
+        "source": "CUPCase",
+        "expected": "Gorlin syndrome",
+        "hit": true,
+        "intake_questions": 3,
+        "latency_s": 22.88
+      },
+      {
+        "id": "rarebench-lirical-9",
+        "source": "RareBench/LIRICAL",
+        "expected": "Recurrent metabolic encephalomyopathic crises-rhabdomyolysis-cardiac arrhythmia-intellectual disability syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.65
+      },
+      {
+        "id": "rarebench-hms-9",
+        "source": "RareBench/HMS",
+        "expected": "Immunoglobulin A vasculitis",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.14
+      },
+      {
+        "id": "rarebench-ramedis-8",
+        "source": "RareBench/RAMEDIS",
+        "expected": "3-hydroxy-3-methylglutaric aciduria",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.29
+      },
+      {
+        "id": "rarebench-mme-2",
+        "source": "RareBench/MME",
+        "expected": "Ataxia-intellectual disability-oculomotor apraxia-cerebellar cysts syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 22.33
+      },
+      {
+        "id": "rarebench-mme-7",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.19
+      },
+      {
+        "id": "rarebench-hms-11",
+        "source": "RareBench/HMS",
+        "expected": "Familial cold inflammatory syndrome 1",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.63
+      },
+      {
+        "id": "rarebench-lirical-1",
+        "source": "RareBench/LIRICAL",
+        "expected": "Stankiewicz-Isidor syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 20.85
+      },
+      {
+        "id": "rarebench-ramedis-11",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 20.55
+      },
+      {
+        "id": "rarebench-lirical-4",
+        "source": "RareBench/LIRICAL",
+        "expected": "Oculocerebrorenal syndrome of Lowe",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 21.23
+      },
+      {
+        "id": "rarebench-hms-2",
+        "source": "RareBench/HMS",
+        "expected": "Systemic lupus erythematosus",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 21.34
+      }
+    ]
+  },
+  {
+    "label": "Gemma 4",
+    "model": "accounts/fireworks/models/gemma-4-31b-it#accounts/wachirawut2002-fqt88/deployments/rk0psoca",
+    "rows": [
+      {
+        "id": "cupcase-8",
+        "source": "CUPCase",
+        "expected": "Meningioma",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.83
+      },
+      {
+        "id": "rarebench-mme-1",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.66
+      },
+      {
+        "id": "rarebench-mme-14",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.59
+      },
+      {
+        "id": "rarebench-mme-6",
+        "source": "RareBench/MME",
+        "expected": "Shprintzen-Goldberg syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.44
+      },
+      {
+        "id": "rarebench-hms-13",
+        "source": "RareBench/HMS",
+        "expected": "Antisynthetase syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 30.7
+      },
+      {
+        "id": "rarebench-mme-13",
+        "source": "RareBench/MME",
+        "expected": "SHORT syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 21.42
+      },
+      {
+        "id": "rarebench-lirical-7",
+        "source": "RareBench/LIRICAL",
+        "expected": "Joubert syndrome 30",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 40.32
+      },
+      {
+        "id": "rarebench-ramedis-0",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Ornithine transcarbamylase deficiency",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 36.1
+      },
+      {
+        "id": "cupcase-14",
+        "source": "CUPCase",
+        "expected": "Anti-MDA5 positive dermatomyositis",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.97
+      },
+      {
+        "id": "rarebench-mme-0",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.78
+      },
+      {
+        "id": "rarebench-ramedis-1",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 17.02
+      },
+      {
+        "id": "rarebench-lirical-8",
+        "source": "RareBench/LIRICAL",
+        "expected": "Bleeding disorder, platelet-type, 15",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 35.86
+      },
+      {
+        "id": "rarebench-ramedis-6",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glycogen storage disease Ia",
+        "hit": false,
+        "intake_questions": 3,
+        "latency_s": 36.5
+      },
+      {
+        "id": "rarebench-ramedis-9",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Smith-Lemli-Opitz syndrome",
+        "hit": true,
+        "intake_questions": 0,
+        "latency_s": 35.53
+      },
+      {
+        "id": "rarebench-hms-7",
+        "source": "RareBench/HMS",
+        "expected": "Takayasu arteritis",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 32.12
+      },
+      {
+        "id": "cupcase-9",
+        "source": "CUPCase",
+        "expected": "Giant cell arteritis (GCA)",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.74
+      },
+      {
+        "id": "rarebench-lirical-14",
+        "source": "RareBench/LIRICAL",
+        "expected": "Brachydactyly-short stature-retinitis pigmentosa syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.44
+      },
+      {
+        "id": "rarebench-lirical-11",
+        "source": "RareBench/LIRICAL",
+        "expected": "Oliver-Mcfarlane syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 16.99
+      },
+      {
+        "id": "rarebench-hms-3",
+        "source": "RareBench/HMS",
+        "expected": "Primary Sj\u00f6gren syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 27.23
+      },
+      {
+        "id": "rarebench-lirical-2",
+        "source": "RareBench/LIRICAL",
+        "expected": "Bamforth-Lazarus syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.62
+      },
+      {
+        "id": "rarebench-hms-8",
+        "source": "RareBench/HMS",
+        "expected": "Systemic sclerosi",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 39.53
+      },
+      {
+        "id": "rarebench-ramedis-12",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Canavan disease",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 20.14
+      },
+      {
+        "id": "rarebench-mme-3",
+        "source": "RareBench/MME",
+        "expected": "Ataxia-intellectual disability-oculomotor apraxia-cerebellar cysts syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.58
+      },
+      {
+        "id": "rarebench-lirical-13",
+        "source": "RareBench/LIRICAL",
+        "expected": "Recurrent metabolic encephalomyopathic crises-rhabdomyolysis-cardiac arrhythmia-intellectual disability syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 26.57
+      },
+      {
+        "id": "rarebench-lirical-0",
+        "source": "RareBench/LIRICAL",
+        "expected": "Cleidocranial dysplasia",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.54
+      },
+      {
+        "id": "rarebench-ramedis-14",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Citrullinemia type I",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.54
+      },
+      {
+        "id": "rarebench-ramedis-13",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glutaric acidemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 41.07
+      },
+      {
+        "id": "cupcase-1",
+        "source": "CUPCase",
+        "expected": "metastatic melanoma",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.92
+      },
+      {
+        "id": "rarebench-lirical-12",
+        "source": "RareBench/LIRICAL",
+        "expected": "Myasthenic syndrome, congenital, 8",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.47
+      },
+      {
+        "id": "rarebench-mme-11",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "intake_questions": 0,
+        "latency_s": 35.79
+      },
+      {
+        "id": "rarebench-ramedis-5",
+        "source": "RareBench/RAMEDIS",
+        "expected": "X-linked hypophosphatemia",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 22.1
+      },
+      {
+        "id": "cupcase-7",
+        "source": "CUPCase",
+        "expected": "Acute left adrenal infarction",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.81
+      },
+      {
+        "id": "cupcase-11",
+        "source": "CUPCase",
+        "expected": "Intra-abdominal desmoid-type fibromatosis",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 17.5
+      },
+      {
+        "id": "rarebench-mme-4",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 32.62
+      },
+      {
+        "id": "cupcase-6",
+        "source": "CUPCase",
+        "expected": "High-grade serous ovarian cancer (pT3bN1M0)",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.99
+      },
+      {
+        "id": "rarebench-ramedis-7",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.59
+      },
+      {
+        "id": "rarebench-hms-6",
+        "source": "RareBench/HMS",
+        "expected": "Granulomatosis with polyangiitis",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.47
+      },
+      {
+        "id": "rarebench-mme-10",
+        "source": "RareBench/MME",
+        "expected": "Microcephaly 2, primary, autosomal recessive, with or without cortical malformations",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 36.24
+      },
+      {
+        "id": "rarebench-lirical-3",
+        "source": "RareBench/LIRICAL",
+        "expected": "CODAS syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 18.05
+      },
+      {
+        "id": "rarebench-mme-8",
+        "source": "RareBench/MME",
+        "expected": "Cataract-growth hormone deficiency-sensory neuropathy-sensorineural hearing loss-skeletal dysplasia syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 23.2
+      },
+      {
+        "id": "rarebench-ramedis-4",
+        "source": "RareBench/RAMEDIS",
+        "expected": "PMM2-CDG",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.49
+      },
+      {
+        "id": "rarebench-ramedis-3",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Ornithine transcarbamylase deficiency",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.49
+      },
+      {
+        "id": "rarebench-mme-12",
+        "source": "RareBench/MME",
+        "expected": "Alacrimia-choreoathetosis-liver dysfunction syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 16.93
+      },
+      {
+        "id": "rarebench-ramedis-2",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Medium chain acyl-CoA dehydrogenase deficiency",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 37.48
+      },
+      {
+        "id": "rarebench-hms-14",
+        "source": "RareBench/HMS",
+        "expected": "Stickler syndrome type 1",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.54
+      },
+      {
+        "id": "rarebench-mme-9",
+        "source": "RareBench/MME",
+        "expected": "Spondylometaphyseal dysplasia, Sedaghatian type",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 17.21
+      },
+      {
+        "id": "rarebench-lirical-10",
+        "source": "RareBench/LIRICAL",
+        "expected": "Autosomal dominant hyper-IgE syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.58
+      },
+      {
+        "id": "cupcase-10",
+        "source": "CUPCase",
+        "expected": "PCE (Perchloroethylene) intoxication",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.86
+      },
+      {
+        "id": "rarebench-lirical-5",
+        "source": "RareBench/LIRICAL",
+        "expected": "Multiple endocrine neoplasia type 1",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.45
+      },
+      {
+        "id": "rarebench-hms-4",
+        "source": "RareBench/HMS",
+        "expected": "IgG4 related disease",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.55
+      },
+      {
+        "id": "rarebench-hms-10",
+        "source": "RareBench/HMS",
+        "expected": "Buerger disease",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.66
+      },
+      {
+        "id": "cupcase-5",
+        "source": "CUPCase",
+        "expected": "Methanol poisoning",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 9.21
+      },
+      {
+        "id": "cupcase-0",
+        "source": "CUPCase",
+        "expected": "Fibroadenoma in axillary accessory breast",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.85
+      },
+      {
+        "id": "rarebench-hms-12",
+        "source": "RareBench/HMS",
+        "expected": "Systemic lupus erythematosus",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 39.51
+      },
+      {
+        "id": "rarebench-ramedis-10",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Glutaric acidemia type I",
+        "hit": true,
+        "intake_questions": 4,
+        "latency_s": 38.2
+      },
+      {
+        "id": "cupcase-2",
+        "source": "CUPCase",
+        "expected": "Lightning strike injury",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.89
+      },
+      {
+        "id": "rarebench-lirical-6",
+        "source": "RareBench/LIRICAL",
+        "expected": "Galloway-Mowat syndrome 4",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 21.16
+      },
+      {
+        "id": "cupcase-4",
+        "source": "CUPCase",
+        "expected": "COVID-19-related encephalomyelitis",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.8
+      },
+      {
+        "id": "cupcase-3",
+        "source": "CUPCase",
+        "expected": "Hydatid disease",
+        "hit": true,
+        "intake_questions": 0,
+        "latency_s": 33.1
+      },
+      {
+        "id": "rarebench-hms-0",
+        "source": "RareBench/HMS",
+        "expected": "Vasculitis, autoinflammation, immunodeficiency, and hematologic defects syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 31.84
+      },
+      {
+        "id": "rarebench-hms-5",
+        "source": "RareBench/HMS",
+        "expected": "Familial mediterranean fever",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 41.15
+      },
+      {
+        "id": "rarebench-hms-1",
+        "source": "RareBench/HMS",
+        "expected": "Spondyloarthropathy, susceptibility to, 1",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 16.95
+      },
+      {
+        "id": "rarebench-mme-5",
+        "source": "RareBench/MME",
+        "expected": "Microcephaly-Capillary malformation syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 16.9
+      },
+      {
+        "id": "cupcase-13",
+        "source": "CUPCase",
+        "expected": "de Winter syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.92
+      },
+      {
+        "id": "cupcase-12",
+        "source": "CUPCase",
+        "expected": "Gorlin syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.68
+      },
+      {
+        "id": "rarebench-lirical-9",
+        "source": "RareBench/LIRICAL",
+        "expected": "Recurrent metabolic encephalomyopathic crises-rhabdomyolysis-cardiac arrhythmia-intellectual disability syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 30.5
+      },
+      {
+        "id": "rarebench-hms-9",
+        "source": "RareBench/HMS",
+        "expected": "Immunoglobulin A vasculitis",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.44
+      },
+      {
+        "id": "rarebench-ramedis-8",
+        "source": "RareBench/RAMEDIS",
+        "expected": "3-hydroxy-3-methylglutaric aciduria",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 39.78
+      },
+      {
+        "id": "rarebench-mme-2",
+        "source": "RareBench/MME",
+        "expected": "Ataxia-intellectual disability-oculomotor apraxia-cerebellar cysts syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 25.07
+      },
+      {
+        "id": "rarebench-mme-7",
+        "source": "RareBench/MME",
+        "expected": "Cerebrocostomandibular syndrome",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 23.36
+      },
+      {
+        "id": "rarebench-hms-11",
+        "source": "RareBench/HMS",
+        "expected": "Familial cold inflammatory syndrome 1",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 22.68
+      },
+      {
+        "id": "rarebench-lirical-1",
+        "source": "RareBench/LIRICAL",
+        "expected": "Stankiewicz-Isidor syndrome",
+        "hit": false,
+        "intake_questions": 4,
+        "latency_s": 41.45
+      },
+      {
+        "id": "rarebench-ramedis-11",
+        "source": "RareBench/RAMEDIS",
+        "expected": "Phenylketonuria",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 20.43
+      },
+      {
+        "id": "rarebench-lirical-4",
+        "source": "RareBench/LIRICAL",
+        "expected": "Oculocerebrorenal syndrome of Lowe",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 22.57
+      },
+      {
+        "id": "rarebench-hms-2",
+        "source": "RareBench/HMS",
+        "expected": "Systemic lupus erythematosus",
+        "hit": false,
+        "error": "'NoneType' object has no attribute 'strip'",
+        "latency_s": 8.66
+      }
+    ]
+  }
+]
