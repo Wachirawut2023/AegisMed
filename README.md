@@ -1,6 +1,6 @@
 # 🛡 AegisMed
 
-**A virtual board of AI specialist physicians that helps doctors catch rare diseases sooner.**
+**A virtual board of AI specialist physicians that helps doctors get second opinions on complex and undifferentiated cases.**
 
 Built for the [AMD Developer Hackathon: ACT II](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-ii) — Track 3 (Unicorn Track), powered by **Google Gemma** on **Fireworks AI** (AMD hardware) and **AMD Developer Cloud**.
 
@@ -8,11 +8,11 @@ Built for the [AMD Developer Hackathon: ACT II](https://lablab.ai/ai-hackathons/
 
 ## The problem
 
-A rare disease patient waits **5–7 years on average** for a correct diagnosis, seeing 8+ doctors along the way. The knowledge to diagnose them usually exists — but it is scattered across specialties, and no single physician can hold all of it. Patients fall through the gaps *between* specialties.
+Diagnostic reasoning is distributed across specialties. No single physician can hold all the knowledge needed to confidently work up a complex case. In rare diseases, the stakes are highest — patients wait 5–7 years on average for a correct diagnosis — but the value of a multidisciplinary case conference applies to any undifferentiated or complex presentation.
 
 ## The idea
 
-AegisMed recreates the one thing that reliably catches rare diseases — a **multidisciplinary case conference** — as software a doctor can convene in 60 seconds:
+AegisMed recreates the diagnostic power of a **multidisciplinary case conference** — a structured review by specialists across domains — as software a doctor can convene in 60 seconds:
 
 1. The physician enters a patient case (symptoms, history, labs).
 2. An **intake agent** reviews it first and asks for any missing high-value details (timeline, family history, exposures, prior tests) — like a clinician taking a focused history before consulting. The physician answers, or skips.
