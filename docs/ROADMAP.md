@@ -402,15 +402,203 @@ Deferred approach:
 
 ---
 
-## Future Roadmap (Phase 4+)
+## Phase 4a — Regulatory & SaMD Pathway
 
-After phases 3a–3f, the foundation supports:
+**Current Status:** Planning (detailed architecture below)  
+**Effort Estimate:** 4–6 weeks (documentation + audit prep)  
+**Dependency:** Phases 3a–3f complete ✅  
+**Blocks:** Commercial enterprise deployment, regulated healthcare settings
 
-### 4a — Regulatory & SaMD Pathway
-- FDA pre-submission meeting (define AegisMed as clinical decision-support, not autonomous diagnosis)
-- HIPAA BAA for SaaS deployment
-- GDPR Data Processing Agreement for EU instances
-- ISO 13485 (medical device QMS) optional but valuable for enterprise sales
+### Opportunity
+
+AegisMed in its current form (v0.1.0) is a proof-of-concept research tool. Moving to healthcare deployment — especially via hospital/EHR integration (Phase 3f) — triggers regulatory scrutiny in the US, EU, and other regions. FDA classification as Software as a Medical Device (SaMD) is likely, and clearing that path is necessary for:
+- Hospital adoption (risk/compliance teams require FDA pathway)
+- Insurance coverage (payers demand evidence and regulatory clearance)
+- Medical school partnerships (accredited institutions need compliance assurance)
+- Telehealth platform integrations (platforms require liability indemnification)
+
+Phase 4a is the regulatory strategy and documentation prep to unlock enterprise markets.
+
+### Key Regulatory Questions
+
+#### 1. FDA Classification: Is AegisMed a Medical Device?
+
+**Short answer:** Likely yes, under 21 CFR 860.
+
+AegisMed makes "diagnostic recommendations." Under FDA regulations:
+- **Software that influences medical decisions** → treated as medical device software (SaMD)
+- **Diagnosis-as-a-service** → subject to FDA oversight
+- **No FDA review yet** → but best-practice is to engage FDA proactively via a pre-submission meeting
+
+**AegisMed's position:**
+- ✅ Explicitly frames output as "decision support only" (every response includes disclaimer)
+- ✅ Not autonomous — clinician must review and verify
+- ✅ No treatment recommendation — board stops at differential diagnosis
+- ✅ Transparent reasoning — shows specialist opinions, evidence, guideline links
+- ❌ Inputs patient data (labs, symptoms, demographics) to produce ranked diagnoses
+- ❌ Output affects clinical decision pathway ("should we order more tests?" "does this diagnosis fit?")
+
+**FDA pre-submission strategy:**
+- File Type B pre-submission under FDA's Q-submission process (3–4 week response time)
+- Present: product description, intended use, regulatory pathway, risk analysis, predicate devices
+- Ask FDA: "Is this device subject to 510(k) vs. PMA?" (likely 510(k) — less onerous)
+- Expected response: "Yes, SaMD; 510(k) pathway recommended with [specific data requirements]"
+
+#### 2. 510(k) Pathway: What Data Is Required?
+
+If FDA recommends 510(k), the submission requires:
+
+**Predicate Device Identification:**
+- Identify an already-cleared diagnostic AI tool (e.g., IBM Watson for Oncology, Tempus AI clinical research)
+- Show substantial equivalence in intended use, technology, and safety/effectiveness profile
+
+**Software Documentation (IEC 62304):**
+- Software development plan (design, architecture, unit/integration/system testing)
+- Cybersecurity documentation (threat assessment, mitigation)
+- Verification & validation testing (does the software do what it claims?)
+- Post-market surveillance plan (how will you track safety/effectiveness in real use?)
+
+**Clinical Evidence:**
+- Evaluation data: board's diagnostic accuracy on real rare-disease cases
+- Comparison to standard of care (do clinicians follow the board more than their own reasoning?)
+- Safety data: false-positive rate, missed diagnoses, adverse event potential
+
+**Risk Analysis (ISO 14971):**
+- Hazard analysis: what could go wrong? (hallucinated diagnosis, outdated guideline links, model drift)
+- Mitigation: how do you prevent/detect/respond? (regular guideline updates, disclaimer visibility, outcome monitoring)
+
+#### 3. HIPAA Compliance: What's Required for Hospital Deployment?
+
+Hospitals demand HIPAA Business Associate Agreement (BAA) before any AegisMed instance touches patient data.
+
+**HIPAA requirements:**
+- **Encryption at rest:** patient labs/conditions must be encrypted in database (AES-256 minimum)
+- **Encryption in transit:** TLS 1.2+ for all network comms
+- **Access control:** clinician authentication (OAuth2 + MFA recommended), audit logging of who accessed what case
+- **Audit logging:** every case submission, every comment, every export logged with timestamp + clinician ID + IP
+- **Data retention:** policies on how long case histories are stored (e.g., "delete after 1 year" or "retain for statute of limitations")
+- **Breach notification:** process for detecting/notifying breaches within 60 days
+
+**AegisMed's current state (v0.1.0):**
+- ❌ No encryption at rest (cases.jsonl is plaintext)
+- ❌ No clinician authentication (anyone with network access can submit)
+- ❌ Minimal audit logging (no IP tracking, no access control)
+- ❌ No data retention policy
+
+**Phase 4a deliverables for HIPAA readiness:**
+1. **Security infrastructure audit:** hire third-party security firm to assess gaps
+2. **Encryption implementation:** add AES-256 at rest + TLS enforcement
+3. **Audit logging system:** implement structured logging (JSON + centralized log storage)
+4. **HIPAA Business Associate Agreement template:** legal doc for hospital contracts
+5. **Risk Assessment (HIPAA Security Rule § 164.308(a)):** document risk matrix + mitigation
+6. **Incident Response Plan:** what happens if a case file is accessed without authorization?
+
+#### 4. GDPR: What's Required for EU Hospital Deployment?
+
+EU hospitals also need compliance — GDPR is stricter than HIPAA in some ways.
+
+**GDPR requirements (parallel to HIPAA):**
+- **Data subject rights:** clinician can request what data is stored about "their" patient (even if pseudonymous)
+- **Data minimization:** collect only data strictly necessary (⚠️ current design stores full labs/meds — must justify)
+- **Right to be forgotten:** patient (via clinician/hospital) can request deletion; must comply in reasonable time
+- **Data Processing Agreement (DPA):** hospital is data controller, AegisMed is processor; must sign binding DPA
+- **Data Protection Impact Assessment (DPIA):** evaluate risks to individuals (data breach, misuse, etc.)
+
+**AegisMed's current state:**
+- ⚠️ Stores patient context (labs, conditions) as plaintext in cases.jsonl → GDPR concern
+- ✅ No direct patient names (only clinician ID + hashed patient ID per Phase 3f design)
+- ❌ No DPIA; no DPA template
+
+**Phase 4a deliverables for GDPR readiness:**
+1. **Data Protection Impact Assessment:** formal DPIA per GDPR Article 35
+2. **Data Processing Agreement template:** legal doc for hospital contracts
+3. **Anonymization review:** confirm patient-context storage complies with anonymization standards (ISO 20460)
+4. **Right-to-be-forgotten implementation:** API endpoint to delete all cases for a pseudonymized patient within 30 days
+
+#### 5. Insurance / Medical Legal Liability
+
+Insurers expect certain standards before covering AegisMed usage.
+
+**Liability questions:**
+- **Malpractice insurance:** does AegisMed have product liability coverage? (Yes — obtained before deployment)
+- **Indemnification:** if a clinician follows the board's diagnosis and it's wrong, who's liable? (AegisMed's disclaimer says "clinician must verify," but legal clarity helps)
+- **Evidence of efficacy:** what's the board's diagnostic accuracy? (use eval results from Phase 1)
+- **Safety metrics:** false-positive rate? Missed diagnoses? (track via outcomes monitoring)
+
+**Phase 4a deliverables:**
+1. **Product liability insurance policy:** minimum $2M coverage, cyber liability rider
+2. **Indemnification clause:** standard language in hospital contracts
+3. **Efficacy evidence package:** publish/present board accuracy data (medical journal submission via Phase 4e)
+
+### Implementation Strategy
+
+#### Phase 4a Timeline: Weeks 1–4
+
+**Week 1: Pre-submission prep**
+- Hire FDA regulatory consultant (1–2 day engagement, $5–10K)
+- Draft pre-submission package: product description, intended use statement, risk profile
+- Identify 3–5 predicate devices for 510(k) comparison
+
+**Week 2: FDA engagement**
+- File Type B pre-submission (Q-submission via FDA's eSTAR portal)
+- Kick off security audit with third-party firm (Coalfire, Schellman, etc.; 2–4 week engagement)
+
+**Week 3: HIPAA/GDPR prep while waiting for FDA response**
+- Draft HIPAA Business Associate Agreement (template from legal)
+- Draft GDPR Data Processing Agreement
+- Create Data Protection Impact Assessment (DPIA form + risk matrix)
+
+**Week 4: Documentation & internal readiness**
+- Software documentation (architecture, design, test coverage) per IEC 62304
+- Risk analysis per ISO 14971 (hazard table + mitigations)
+- Incident response playbook
+- Audit logging infrastructure review
+
+**Post-Week 4:**
+- Receive FDA pre-submission response (estimate 3 weeks from filing)
+- Security audit final report + remediation plan (estimate 2–3 weeks)
+- Begin remediation work on HIPAA/encryption gaps (Weeks 5–6)
+- Draft 510(k) submission (Weeks 6–8)
+
+### What Gets Deferred to Phase 5+
+
+**❌ FDA 510(k) Submission:** Phase 4a *prepares* for submission but doesn't file yet. Filing happens when:
+- Security audit remediation is complete
+- Clinical evidence is mature (sufficient outcome data from Phase 3d/3f deployments)
+- Predicate device equivalence is established
+
+**❌ ISO 13485 Certification (full QMS):** Optional for FDA 510(k) but valuable for enterprise sales. Requires:
+- Documented design controls, verification/validation, complaint handling, traceability
+- Internal audit program
+- Management review
+- Estimated 3–6 month effort post-clearance
+
+**❌ International approvals (CE mark, PMCF, etc.):** EU In Vitro Diagnostic Directive (IVDR) or Medical Device Directive (MDD) varies by region. Scope creeps. Phase 4a focuses on FDA + HIPAA/GDPR for US + EU hospital deployment.
+
+### Risk Mitigation for Phase 4a
+
+1. **FDA engagement risk:** If FDA classifies AegisMed as higher-risk device, 510(k) might not suffice → could require PMA (Premarket Approval) with clinical trials. *Mitigation:* engage early via pre-submission to get clarity.
+
+2. **Security audit findings:** Third-party audit might reveal major gaps (e.g., no encryption, SQL injection risk in case storage). *Mitigation:* budget for 4–8 week remediation post-audit; use Agile security fixes (prioritize by CVSS score).
+
+3. **Liability insurance cost:** Depending on claim history + product risk, premiums could be $10–30K/year. *Mitigation:* shop multiple carriers; get quotes early.
+
+4. **Legal liability for incorrect diagnosis:** Even with disclaimer, if AegisMed's recommendation is widely followed and turns out to be wrong, litigation risk exists. *Mitigation:* strong evidence of decision-support (clinician review), transparent reasoning, and outcome tracking reduce liability exposure.
+
+### Success Metrics (Phase 4a)
+
+- ✅ FDA pre-submission meeting held; response received with clear 510(k) pathway
+- ✅ Security audit completed; no critical (CVSS 9+) findings; medium findings remediation plan in place
+- ✅ HIPAA/GDPR compliance assessment done; BAA + DPA templates drafted
+- ✅ 510(k) submission-ready documentation complete (IEC 62304, risk analysis, predicate comparison)
+- ✅ Product liability insurance policy obtained
+- ✅ Zero data breaches; audit logging in place on production instances
+
+---
+
+## Future Roadmap (Phase 4b+)
+
+After Phase 4a regulatory clarity is obtained:
 
 ### 4b — Advanced Specialized Workflows
 - Genetic counselor mode (extended genetic reasoning, family-tree visualization)
@@ -443,9 +631,9 @@ After phases 3a–3f, the foundation supports:
 | 3b | Broaden specialist prompts | ✅ Complete | 4–6h | "Complex case" positioning |
 | 3c | Medical school teaching tool | ✅ Complete | 6–8h | Multi-case validator + UI |
 | 3d | B2B hospital case mgmt | ✅ Complete | 12–16h | Case history, team comments |
-| 3e | Geographic expansion plan | **← Now** | Plan only | Region parameter design |
-| 3f | FHIR/EHR integration plan | **Next** | Plan only | OAuth + FHIR architecture |
-| 4a | Regulatory & SaMD pathway | Future | 4–6 weeks | FDA submission-ready docs |
+| 3e | Geographic expansion plan | ✅ Complete | Plan only | Region parameter design |
+| 3f | FHIR/EHR integration plan | ✅ Complete | Plan only | OAuth + FHIR architecture |
+| 4a | Regulatory & SaMD pathway | **← Now** | Plan only | FDA/HIPAA/GDPR strategy |
 | 4b | Specialized workflows | Future | 6–10 weeks | Genetic, pediatric, OB, geri modes |
 | 4c | ML feedback loop | Future | 8–12 weeks | Outcome tracking, model refinement |
 | 4d | Telehealth integrations | Future | 4–8 weeks | Zoom, Teams, platform embeds |
