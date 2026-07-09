@@ -1,9 +1,10 @@
 """The web server — the front door of AegisMed.
 
-Three routes:
-  GET  /             the web page (static/index.html)
-  GET  /health       simple "is it running?" check, used by Docker and judges
-  POST /api/diagnose receives the patient case, runs the board, returns JSON
+Routes:
+  GET  /                 the web page (static/index.html)
+  GET  /health           simple "is it running?" check, used by Docker and judges
+  POST /api/diagnose     receives the patient case, runs the board, returns JSON
+  POST /api/teaching/case  for teaching mode: runs board + compares to expected diagnosis
 """
 
 import json
@@ -44,6 +45,11 @@ class PatientCase(BaseModel):
     labs: str = Field(default="", max_length=8000)
     # Answers to the intake agent's questions, appended to the case for diagnosis.
     clarifications: str = Field(default="", max_length=8000)
+
+
+class TeachingCase(PatientCase):
+    # The student's or instructor's expected diagnosis to compare against the board.
+    expected_diagnosis: str = Field(..., min_length=1, max_length=200)
 
 
 @app.get("/", tags=["meta"], summary="Web UI", include_in_schema=False)
@@ -152,5 +158,60 @@ async def diagnose(case: PatientCase) -> dict:
             labs=case.labs,
             clarifications=case.clarifications,
         )
+    except llm.LLMError as err:
+        raise HTTPException(status_code=502, detail=str(err)) from err
+
+
+@app.post(
+    "/api/teaching/case",
+    tags=["diagnosis"],
+    summary="Teaching case evaluation",
+    description="Runs the diagnostic board and compares the board's top diagnoses against an expected (correct) diagnosis. Returns the full board output plus match metrics for classroom or teaching scenarios.",
+)
+async def teaching_case(case: TeachingCase) -> dict:
+    """Teaching mode: run the board and compare against an expected diagnosis.
+
+    Returns the full board output plus a match_summary showing whether the
+    expected diagnosis appears in the board's top 3, its rank, and [RARE] status.
+    Useful for medical school case-conference simulations.
+    """
+    try:
+        board_output = await orchestrator.diagnose(
+            age=case.age,
+            sex=case.sex,
+            symptoms=case.symptoms,
+            history=case.history,
+            labs=case.labs,
+            clarifications=case.clarifications,
+        )
+
+        # Extract the diagnoses from the board's synthesis.
+        synthesis = board_output.get("synthesis", "")
+        diagnoses = knowledge.extract_diagnoses(synthesis, limit=6)
+
+        # Normalize the expected diagnosis for comparison (case-insensitive, trim punctuation).
+        expected_normalized = knowledge._normalize(case.expected_diagnosis)
+
+        # Find if and where the expected diagnosis appears in the board's output.
+        rank = None
+        is_rare = False
+        for i, diagnosis in enumerate(diagnoses[:3], start=1):
+            if knowledge._normalize(diagnosis) == expected_normalized:
+                rank = i
+                is_rare = "[RARE]" in diagnosis
+                break
+
+        match_summary = {
+            "expected_diagnosis": case.expected_diagnosis,
+            "found_in_top_3": rank is not None,
+            "rank": rank,
+            "is_rare": is_rare,
+            "board_top_3": diagnoses[:3],
+        }
+
+        return {
+            **board_output,
+            "match_summary": match_summary,
+        }
     except llm.LLMError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err

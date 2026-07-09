@@ -144,6 +144,16 @@
     <label for="labs">Labs / investigations</label>
     <textarea id="labs" placeholder="Lab results, imaging, ECG…"></textarea>
 
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <label>
+        <input type="checkbox" id="teachingMode"> 📚 Teaching mode: compare your diagnosis to the board's
+      </label>
+      <div id="teachingFields" class="hidden">
+        <label for="expectedDiagnosis">Your diagnosis *</label>
+        <textarea id="expectedDiagnosis" placeholder="What do you think the diagnosis is?"></textarea>
+      </div>
+    </div>
+
     <div class="actions">
       <button class="primary" id="run">Convene the board</button>
       <select id="examplePicker" class="ghost" style="max-width:340px;">
@@ -176,6 +186,11 @@
     <div class="card synthesis">
       <h2>🩺 Board conclusion</h2>
       <div class="opinion" id="synthesis"></div>
+    </div>
+
+    <div class="card" id="comparisonCard" style="border:2px solid var(--accent-soft);">
+      <h2>📊 Your diagnosis vs. the board's</h2>
+      <div id="comparison"></div>
     </div>
 
     <div class="card" id="referencesCard">
@@ -445,6 +460,88 @@ function renderEvidence(ev) {
     html += cand.map(c => `<div style="font-size:.85rem;margin-bottom:6px;">${escapeHtml(c.name)} — ${linkList(c.links)}</div>`).join("");
   }
   $("evidence").innerHTML = html || "<span style='color:var(--muted)'>No additional evidence retrieved.</span>";
+}
+
+// Teaching mode: toggle the expected diagnosis field
+$("teachingMode").addEventListener("change", (e) => {
+  $("teachingFields").classList.toggle("hidden", !e.target.checked);
+});
+
+// Teaching mode: render the comparison
+function renderComparison(match) {
+  const card = $("comparisonCard");
+  if (!match) {
+    card.classList.add("hidden");
+    return;
+  }
+  card.classList.remove("hidden");
+  const { expected_diagnosis, found_in_top_3, rank, is_rare, board_top_3 } = match;
+  let html = `<strong>Your diagnosis:</strong> ${escapeHtml(expected_diagnosis)}<br>`;
+  if (found_in_top_3) {
+    const rareTag = is_rare ? " <span style='color:var(--danger);'>[RARE]</span>" : "";
+    html += `<span style="color:var(--accent);font-weight:600;">✓ Found in board's top 3 — Ranked #${rank}${rareTag}</span>`;
+  } else {
+    html += `<span style="color:var(--muted);">✗ Not in board's top 3</span>`;
+  }
+  html += `<br><strong style="margin-top:10px;display:block;">Board's top 3:</strong>`;
+  html += `<ol style="margin:4px 0;padding-left:20px;">` +
+    board_top_3.map(d => `<li>${escapeHtml(d)}</li>`).join("") +
+    `</ol>`;
+  $("comparison").innerHTML = html;
+}
+
+// Override runDiagnosis to support teaching mode
+const originalRunDiagnosis = runDiagnosis;
+async function runDiagnosis(clarifications) {
+  const isTeaching = $("teachingMode").checked;
+  const expectedDiagnosis = $("expectedDiagnosis").value.trim();
+
+  if (isTeaching && !expectedDiagnosis) {
+    $("status").innerHTML = '<span class="error">Please enter your diagnosis for teaching mode.</span>';
+    return;
+  }
+
+  $("intake").classList.add("hidden");
+  $("run").disabled = true;
+  $("status").innerHTML = '<span class="spinner"></span>Five specialists are reviewing the case… this can take up to a minute.';
+  $("results").classList.add("hidden");
+
+  try {
+    const endpoint = isTeaching ? "/api/teaching/case" : "/api/diagnose";
+    const body = { ...readCase(), clarifications };
+    if (isTeaching) body.expected_diagnosis = expectedDiagnosis;
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || ("Server error " + res.status));
+    }
+    const data = await res.json();
+
+    $("demoBanner").classList.toggle("hidden", !data.demo_mode);
+    $("demoBanner").textContent = data.demo_banner || "";
+    $("synthesis").innerHTML = renderText(data.synthesis);
+    renderReferences(data.references || []);
+    renderGuidelines(data.guideline_references || []);
+    renderEvidence(data.evidence || {});
+    renderRouting(data.routing || null);
+    renderComparison(data.match_summary || null);
+    renderPrintHeader(data, readCase());
+    $("specialists").innerHTML = data.specialist_opinions.map(s =>
+      `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
+    ).join("");
+
+    $("results").classList.remove("hidden");
+    $("status").textContent = "";
+  } catch (e) {
+    $("status").innerHTML = '<span class="error">' + e.message + "</span>";
+  } finally {
+    $("run").disabled = false;
+  }
 }
 </script>
 </body>
