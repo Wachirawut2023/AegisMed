@@ -12,7 +12,12 @@ import asyncio
 
 from . import config, guidelines, knowledge, llm
 from .demo_data import DEMO_BANNER
-from .specialists import SPECIALISTS, SYNTHESIS_PROMPT
+from .specialists import SPECIALISTS, SYNTHESIS_PROMPT, specialist_prompt, synthesis_prompt
+
+# Supported practice regions (Phase 3e geographic expansion). Unrecognized
+# values fall back to "us" — see docs/ROADMAP.md Phase 3e for the full design.
+_REGIONS = {"us", "uk", "eu"}
+_DEFAULT_REGION = "us"
 
 DISCLAIMER = (
     "AegisMed is a clinical decision-support prototype for licensed physicians. "
@@ -63,11 +68,12 @@ def _format_case(
 
 async def diagnose(
     age: str, sex: str, symptoms: str, history: str, labs: str,
-    clarifications: str = "",
+    clarifications: str = "", region: str = _DEFAULT_REGION,
 ) -> dict:
     """Run the full board and return everything the UI needs as one dict."""
     from . import retrieval  # local import avoids a circular dependency
 
+    region = region if region in _REGIONS else _DEFAULT_REGION
     case_text = _format_case(age, sex, symptoms, history, labs, clarifications)
 
     # Step 0: retrieve real reference evidence to ground the specialists.
@@ -83,7 +89,7 @@ async def diagnose(
     skipped = [n for n in SPECIALISTS if n not in names]
     opinions = await asyncio.gather(
         *(
-            llm.chat(SPECIALISTS[name], grounded_case, agent_name=name)
+            llm.chat(specialist_prompt(name, region), grounded_case, agent_name=name)
             for name in names
         )
     )
@@ -103,17 +109,18 @@ async def diagnose(
             for item in specialist_opinions
         )
     )
-    synthesis = await llm.chat(SYNTHESIS_PROMPT, synthesis_input, agent_name="synthesis")
+    synthesis = await llm.chat(synthesis_prompt(region), synthesis_input, agent_name="synthesis")
 
     # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
     diagnoses = knowledge.extract_diagnoses(synthesis)
     references = knowledge.references_for(diagnoses)
-    guideline_references = guidelines.guidelines_for(diagnoses)
+    guideline_references = guidelines.guidelines_for(diagnoses, region=region)
 
     return {
         "disclaimer": DISCLAIMER,
         "demo_mode": config.demo_mode(),
         "demo_banner": DEMO_BANNER if config.demo_mode() else "",
+        "region": region,
         "evidence": {"phenotypes": evidence["phenotypes"], "candidates": evidence["candidates"]},
         "references": references,
         "guideline_references": guideline_references,

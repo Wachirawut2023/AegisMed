@@ -20,10 +20,21 @@ This document outlines the planned expansions for AegisMed beyond the initial MV
 
 ## Phase 3e — Geographic & Language Expansion Infrastructure
 
-**Current Status:** Planning only  
-**Effort Estimate:** 8–12 weeks (full implementation)  
+**Current Status:** ✅ MVP implemented (region parameter, regional guideline ordering, regional specialist context)  
+**Effort Estimate:** 8–12 weeks (full implementation) — MVP landed in a single session; remaining work below  
 **Dependency:** Phase 3d complete ✅ (multi-case + team workflows)  
 **Blocks:** None — can parallelize with 3f
+
+### What shipped (MVP)
+
+- `region` field on every request (`PatientCase.region`, default `"us"`, validated to `"us"`/`"uk"`/`"eu"` at the API boundary — invalid values get a `422`)
+- `aegismed/guidelines.py`: the same 7 verified guideline sources, reordered per region (e.g. NICE leads for `"uk"`); curated index entries can now be per-region dicts, not just flat lists (`data/guidelines_index.json` has two worked examples: myasthenia gravis, giant cell arteritis)
+- `aegismed/specialists.py`: `specialist_prompt()`/`synthesis_prompt()` append a short regional practice-context blurb (nudges toward NICE/ESC/ACC-AHA-style authorities); the underlying diagnostic reasoning is unchanged by region
+- `orchestrator.diagnose()` accepts `region`, threads it through specialists, synthesis, and guideline lookup, and echoes it back in the response (`region` field)
+- UI: a "Practice region" selector next to age/sex; selected region is sent on every board run and shown on the printed report
+- Test coverage: `tests/test_guidelines.py` (region ordering, per-region curated fallback) and `tests/test_specialists.py` (regional prompt context)
+
+**Deliberately NOT done in the MVP** (still real future work, see below): no new unverified guideline sources were added — only the existing verified 7 were reordered — and no clinical reasoning happens in another language.
 
 ### Opportunity
 
@@ -71,6 +82,14 @@ Specialist reasoning (the "why") remains language-agnostic: phenotype-to-differe
 - Regulatory framing (medical decision support vs. autonomous diagnosis)
 
 #### 3. Guideline Sources Per Region
+
+> **Shipped vs. aspirational:** the MVP reorders the existing 7 *verified*
+> sources per region (see "What shipped" above) and does **not** add BMA,
+> RCPCH, ESC, ESGO, or EORTC — those are unverified via curl/browser today.
+> The lists below describe the eventual full state; adding any of them
+> requires manual browser verification first, per the codebase's
+> "never invented, always live" rule (`aegismed/guidelines.py` module
+> docstring).
 
 In `aegismed/guidelines.py`: expand guideline search sources by region.
 
@@ -631,7 +650,7 @@ After Phase 4a regulatory clarity is obtained:
 | 3b | Broaden specialist prompts | ✅ Complete | 4–6h | "Complex case" positioning |
 | 3c | Medical school teaching tool | ✅ Complete | 6–8h | Multi-case validator + UI |
 | 3d | B2B hospital case mgmt | ✅ Complete | 12–16h | Case history, team comments |
-| 3e | Geographic expansion plan | ✅ Complete | Plan only | Region parameter design |
+| 3e | Geographic expansion | ✅ MVP shipped | ~1 day (MVP) | `region` param, regional guideline ordering, regional specialist context |
 | 3f | FHIR/EHR integration plan | ✅ Complete | Plan only | OAuth + FHIR architecture |
 | 4a | Regulatory & SaMD pathway | **← Now** | Plan only | FDA/HIPAA/GDPR strategy |
 | 4b | Specialized workflows | Future | 6–10 weeks | Genetic, pediatric, OB, geri modes |

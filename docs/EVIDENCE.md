@@ -38,9 +38,14 @@ So AegisMed follows one rule: **the AI is never the source of a citation.**
    *search* pages, not an AI-selected "the guideline for X" — that distinction
    matters, since we can't guarantee a specific document is current, only that
    the search itself is real. An optional curated index
-   (`data/guidelines_index.json`, empty by default) can layer hand-verified
-   links to *specific* guideline documents on top of the search links; every
-   entry must be manually browser-verified before it is added.
+   (`data/guidelines_index.json`, populated for 15 diagnoses) can layer
+   hand-verified links to *specific* guideline documents on top of the search
+   links; every entry must be manually browser-verified before it is added.
+   A request's `region` (`"us"`/`"uk"`/`"eu"`, default `"us"`) reorders the SAME
+   verified source pool to foreground the source most relevant to that practice
+   context (e.g. NICE first for `"uk"`) — it never adds a new, unverified
+   region-specific source. A curated entry may also be a per-region dict
+   (`{"us": [...], "uk": [...]}`) instead of a flat list.
 
 ## Evidence that informs the specialists (retrieval)
 

@@ -93,6 +93,30 @@ SPECIALISTS: dict[str, str] = {
     ),
 }
 
+# Practice-context blurb appended per region. The underlying clinical reasoning
+# stays in English and is region-independent (phenotype-to-differential logic is
+# universal); only guideline emphasis and prevalence framing shift. Translating
+# the reasoning itself into another language is explicitly out of scope here —
+# see docs/ROADMAP.md Phase 3e for why that is deferred.
+_REGIONAL_CONTEXT: dict[str, str] = {
+    "us": (
+        "\nPractice context: United States. When you reference guidelines, favor "
+        "US authorities (e.g. ACC/AHA, USPSTF, AASLD) and note US-typical care "
+        "pathways where relevant.\n"
+    ),
+    "uk": (
+        "\nPractice context: United Kingdom. When you reference guidelines, favor "
+        "NICE and other UK/NHS authorities and note NHS-typical care pathways "
+        "where relevant.\n"
+    ),
+    "eu": (
+        "\nPractice context: European Union. When you reference guidelines, favor "
+        "European authorities (e.g. ESC, EASL, EULAR) and note EU-typical care "
+        "pathways where relevant.\n"
+    ),
+}
+
+
 SYNTHESIS_PROMPT = """
 You are the chief medical officer chairing a clinical case conference evaluating
 complex and undifferentiated diagnostic cases. You will receive one patient case
@@ -125,3 +149,18 @@ the differential, and why.
 
 Be honest about uncertainty. You are assisting a licensed physician, not a patient.
 """
+
+
+def specialist_prompt(name: str, region: str = "us") -> str:
+    """A specialist's base prompt plus regional practice context.
+
+    `region` is one of "us"/"uk"/"eu" (default "us"); unrecognized values fall
+    back to "us". Diagnostic reasoning does not change by region — only which
+    guideline authorities and care pathways the specialist is nudged to mention.
+    """
+    return SPECIALISTS[name] + _REGIONAL_CONTEXT.get(region, _REGIONAL_CONTEXT["us"])
+
+
+def synthesis_prompt(region: str = "us") -> str:
+    """The board-chair synthesis prompt plus regional practice context."""
+    return SYNTHESIS_PROMPT + _REGIONAL_CONTEXT.get(region, _REGIONAL_CONTEXT["us"])

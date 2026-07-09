@@ -23,20 +23,38 @@
       "url": "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC6158139/"
     }
   ],
-  "myasthenia gravis": [
-    {
-      "label": "NICE Clinical Guideline: Myasthenia Gravis",
-      "url": "https://www.nice.org.uk/guidance/ng108"
-    },
-    {
-      "label": "American Academy of Neurology: MG Evaluation and Management",
-      "url": "https://www.ncbi.nlm.nih.gov/pubmed/26438681"
-    },
-    {
-      "label": "Cochrane Review: Thymectomy for Myasthenia Gravis",
-      "url": "https://www.cochranelibrary.com/CD005224/"
-    }
-  ],
+  "myasthenia gravis": {
+    "us": [
+      {
+        "label": "American Academy of Neurology: MG Evaluation and Management",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/26438681"
+      },
+      {
+        "label": "Cochrane Review: Thymectomy for Myasthenia Gravis",
+        "url": "https://www.cochranelibrary.com/CD005224/"
+      }
+    ],
+    "uk": [
+      {
+        "label": "NICE Clinical Guideline: Myasthenia Gravis",
+        "url": "https://www.nice.org.uk/guidance/ng108"
+      },
+      {
+        "label": "Cochrane Review: Thymectomy for Myasthenia Gravis",
+        "url": "https://www.cochranelibrary.com/CD005224/"
+      }
+    ],
+    "eu": [
+      {
+        "label": "Cochrane Review: Thymectomy for Myasthenia Gravis",
+        "url": "https://www.cochranelibrary.com/CD005224/"
+      },
+      {
+        "label": "American Academy of Neurology: MG Evaluation and Management",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/26438681"
+      }
+    ]
+  },
   "primary biliary cholangitis": [
     {
       "label": "AASLD Clinical Practice Guidelines: PBC",
@@ -57,16 +75,30 @@
       "url": "https://www.ncbi.nlm.nih.gov/pubmed/34519523"
     }
   ],
-  "giant cell arteritis": [
-    {
-      "label": "American College of Rheumatology: Giant Cell Arteritis Guidelines",
-      "url": "https://www.ncbi.nlm.nih.gov/pubmed/32341472"
-    },
-    {
-      "label": "NICE Clinical Guideline: Polymyalgia Rheumatica and Giant Cell Arteritis",
-      "url": "https://www.nice.org.uk/guidance/ng137"
-    }
-  ],
+  "giant cell arteritis": {
+    "us": [
+      {
+        "label": "American College of Rheumatology: Giant Cell Arteritis Guidelines",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/32341472"
+      }
+    ],
+    "uk": [
+      {
+        "label": "NICE Clinical Guideline: Polymyalgia Rheumatica and Giant Cell Arteritis",
+        "url": "https://www.nice.org.uk/guidance/ng137"
+      }
+    ],
+    "eu": [
+      {
+        "label": "American College of Rheumatology: Giant Cell Arteritis Guidelines",
+        "url": "https://www.ncbi.nlm.nih.gov/pubmed/32341472"
+      },
+      {
+        "label": "NICE Clinical Guideline: Polymyalgia Rheumatica and Giant Cell Arteritis",
+        "url": "https://www.nice.org.uk/guidance/ng137"
+      }
+    ]
+  },
   "guillain-barré syndrome": [
     {
       "label": "American Academy of Neurology: Guillain-Barré Syndrome Management",

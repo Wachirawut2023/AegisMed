@@ -136,6 +136,14 @@
           <option value="female">Female</option>
         </select>
       </div>
+      <div>
+        <label for="region">Practice region</label>
+        <select id="region">
+          <option value="us">United States</option>
+          <option value="uk">United Kingdom</option>
+          <option value="eu">European Union</option>
+        </select>
+      </div>
     </div>
     <label for="symptoms">Presenting symptoms *</label>
     <textarea id="symptoms" placeholder="Describe the patient's symptoms…"></textarea>
@@ -345,6 +353,7 @@ function readCase() {
     symptoms: $("symptoms").value.trim(),
     history: $("history").value.trim(),
     labs: $("labs").value.trim(),
+    region: $("region").value,
   };
 }
 
@@ -481,8 +490,10 @@ function renderGuidelines(refs) {
 // a saved/printed PDF can leave the app's context entirely.
 function renderPrintHeader(data, caseFields) {
   const when = new Date().toLocaleString();
+  const regionLabels = { us: "United States", uk: "United Kingdom", eu: "European Union" };
   const rows = [
     ["Age", caseFields.age], ["Sex", caseFields.sex],
+    ["Practice region", regionLabels[data.region] || regionLabels[caseFields.region]],
     ["Presenting symptoms", caseFields.symptoms],
     ["Medical & family history", caseFields.history],
     ["Labs / investigations", caseFields.labs],

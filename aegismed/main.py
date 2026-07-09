@@ -46,6 +46,9 @@ class PatientCase(BaseModel):
     labs: str = Field(default="", max_length=8000)
     # Answers to the intake agent's questions, appended to the case for diagnosis.
     clarifications: str = Field(default="", max_length=8000)
+    # Practice region: shifts which guideline authorities are foregrounded and
+    # which the specialists are nudged to cite. See docs/ROADMAP.md Phase 3e.
+    region: str = Field(default="us", pattern="^(us|uk|eu)$")
 
 
 class TeachingCase(PatientCase):
@@ -170,6 +173,7 @@ async def diagnose(case: PatientCase) -> dict:
             history=case.history,
             labs=case.labs,
             clarifications=case.clarifications,
+            region=case.region,
         )
     except llm.LLMError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err
@@ -196,6 +200,7 @@ async def teaching_case(case: TeachingCase) -> dict:
             history=case.history,
             labs=case.labs,
             clarifications=case.clarifications,
+            region=case.region,
         )
 
         # Extract the diagnoses from the board's synthesis.
@@ -251,6 +256,7 @@ async def save_case_result(req: SaveCaseRequest) -> dict:
             history=req.history,
             labs=req.labs,
             clarifications=req.clarifications,
+            region=req.region,
         )
 
         case_id = cases.save_case(

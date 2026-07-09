@@ -27,6 +27,7 @@ Both `POST` endpoints accept the same JSON body:
 | `history` | string | no | Past illnesses, medications, family history. ≤ 8000 chars. |
 | `labs` | string | no | Labs, imaging, ECG, etc. ≤ 8000 chars. |
 | `clarifications` | string | no | Answers to intake questions, appended to the case. ≤ 8000 chars. |
+| `region` | string | no | `"us"` (default) / `"uk"` / `"eu"`. Reorders which verified guideline sources are foregrounded and nudges specialists to reference region-appropriate authorities (e.g. NICE for `"uk"`). Invalid values are rejected with `422`. |
 
 ## `POST /api/intake` — ask for missing details (optional)
 
@@ -55,7 +56,8 @@ Runs the full board and returns everything the UI renders. Response shape:
 | `synthesis` | string | The board chair's briefing: ranked differential, next test, safety actions, do-not-miss warning. |
 | `specialist_opinions` | array of `{specialty, opinion}` | Each consulted specialist's written analysis. |
 | `references` | array of `{diagnosis, links:[{label,url}]}` | Verified disease-reference links (Orphanet/OMIM/PubMed/GARD). |
-| `guideline_references` | array of `{diagnosis, links:[{label,url}]}` | Live clinical practice guideline **search** links (PubMed, Cochrane, NICE, TRIP, MedlinePlus, NCBI Bookshelf, Guideline Central). |
+| `guideline_references` | array of `{diagnosis, links:[{label,url}]}` | Live clinical practice guideline **search** links (PubMed, Cochrane, NICE, TRIP, MedlinePlus, NCBI Bookshelf, Guideline Central), ordered per the request's `region`. |
+| `region` | string | The practice region actually used (`"us"`/`"uk"`/`"eu"`) — echoes back the validated request field. |
 | `evidence` | `{phenotypes, candidates}` | What the retrieval step flagged and looked up. |
 | `routing` | `{selected_specialties, skipped_specialties, total_specialties}` | Which specialists smart routing convened. |
 | `disclaimer` | string | The clinical-use disclaimer — display it wherever you surface output. |
@@ -103,6 +105,22 @@ for ref in data["guideline_references"]:
 
 A diagnostic run makes several model calls and can take up to a minute — set a
 generous client timeout (the example uses 120s).
+
+### Practice region (`region`)
+
+Pass `"region": "uk"` or `"region": "eu"` to reorder guideline sources for that
+practice context (e.g. NICE leads for `"uk"`) and nudge specialists toward
+region-appropriate authorities. Defaults to `"us"` if omitted; any other value
+is rejected with `422`.
+
+```bash
+curl -s -X POST http://localhost:8000/api/diagnose \
+  -H "Content-Type: application/json" \
+  -d '{
+        "symptoms": "burning pain in hands and feet since childhood, decreased sweating",
+        "region": "uk"
+      }' | jq '.region, .guideline_references[0].links[0]'
+```
 
 ---
 
