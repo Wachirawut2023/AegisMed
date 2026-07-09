@@ -104,21 +104,52 @@ def _check_dataset(train: Path) -> int:
     return n
 
 
-def upload_dataset(client: httpx.Client, account: str, path: Path, dataset_id: str) -> str:
-    """Create a dataset record and upload the JSONL file to it.
+def _example_count(path: Path) -> int:
+    return sum(1 for line in path.read_text(encoding="utf-8").splitlines() if line.strip())
 
-    Returns the fully-qualified dataset resource name Fireworks uses to refer
-    to it in the fine-tuning job request.
+
+def _dataset_state(client: httpx.Client, resource: str) -> str | None:
+    """Return the dataset's state, or None if it does not exist yet."""
+    r = client.get(f"/{resource}")
+    if r.status_code == 404:
+        return None
+    if r.status_code != 200:
+        raise FineTuneError(f"could not read dataset ({r.status_code}): {r.text[:200]}")
+    return str(r.json().get("state", "")).upper()
+
+
+def upload_dataset(
+    client: httpx.Client, account: str, path: Path, dataset_id: str, reupload: bool = False
+) -> str:
+    """Ensure the dataset exists and holds our JSONL, then return its resource name.
+
+    Fireworks datasets are created empty (state UPLOADING) with the example
+    count declared up front, then the file is uploaded (state -> READY). If the
+    dataset already exists and is READY we reuse it unchanged unless `reupload`.
     """
     resource = f"accounts/{account}/datasets/{dataset_id}"
-    print(f"• creating dataset {dataset_id} ...")
-    r = client.post(
-        f"/accounts/{account}/datasets",
-        json={"datasetId": dataset_id, "dataset": {"userUploaded": {}}},
-    )
-    # 409 = it already exists; that's fine, we'll overwrite its contents below.
-    if r.status_code not in (200, 201, 409):
-        raise FineTuneError(f"could not create dataset ({r.status_code}): {r.text[:300]}")
+    state = _dataset_state(client, resource)
+
+    if state == "READY" and not reupload:
+        print(f"• dataset {dataset_id} already READY — reusing (use --reupload to replace)")
+        return resource
+
+    if state is None:
+        count = _example_count(path)
+        print(f"• creating dataset {dataset_id} ({count} examples) ...")
+        r = client.post(
+            f"/accounts/{account}/datasets",
+            json={
+                "datasetId": dataset_id,
+                "dataset": {"exampleCount": str(count), "userUploaded": {}},
+            },
+        )
+        if r.status_code not in (200, 201):
+            raise FineTuneError(
+                f"could not create dataset ({r.status_code}): {r.text[:300]}"
+            )
+    else:
+        print(f"• dataset {dataset_id} exists (state {state}) — re-uploading file")
 
     print(f"• uploading {path.name} ...")
     with path.open("rb") as fh:
@@ -141,10 +172,16 @@ def create_job(
     output_model: str,
 ) -> dict:
     """Kick off the supervised fine-tuning job and return the created job object."""
+    # Fireworks requires the fully-qualified resource name here.
+    output_resource = (
+        output_model
+        if output_model.startswith("accounts/")
+        else f"accounts/{account}/models/{output_model}"
+    )
     body = {
         "baseModel": base_model,
         "dataset": dataset_resource,
-        "outputModel": f"accounts/{account}/models/{output_model}",
+        "outputModel": output_resource,
         "epochs": epochs,
     }
     print(f"• starting fine-tuning job (base: {base_model}, epochs: {epochs}) ...")
@@ -157,7 +194,10 @@ def create_job(
 
 
 def _job_state(job: dict) -> str:
-    return str(job.get("state") or job.get("status") or "UNKNOWN").upper()
+    # Fireworks reports states like "JOB_STATE_RUNNING" / "JOB_STATE_COMPLETED";
+    # normalise to the bare word (RUNNING, COMPLETED, ...) for readable output.
+    raw = str(job.get("state") or job.get("status") or "UNKNOWN").upper()
+    return raw[len("JOB_STATE_"):] if raw.startswith("JOB_STATE_") else raw
 
 
 def watch_job(client: httpx.Client, job_name: str) -> dict:
@@ -187,6 +227,8 @@ def main() -> None:
     ap.add_argument("--output-model", default="aegismed-gemma-tuned",
                     help="name for the resulting fine-tuned model")
     ap.add_argument("--epochs", type=int, default=1, help="training epochs (default: 1)")
+    ap.add_argument("--reupload", action="store_true",
+                    help="re-upload the training file even if the dataset already exists")
     ap.add_argument("--no-wait", action="store_true",
                     help="start the job and exit instead of watching it")
     ap.add_argument("--dry-run", action="store_true",
@@ -212,7 +254,7 @@ def main() -> None:
         account = _account_id()
         with _client() as client:
             dataset_resource = upload_dataset(
-                client, account, train, args.dataset_id
+                client, account, train, args.dataset_id, reupload=args.reupload
             )
             job = create_job(
                 client, account, dataset_resource, base_model,
