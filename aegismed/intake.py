@@ -76,7 +76,10 @@ async def gather_questions(
 ) -> dict:
     """Ask the intake agent what else it needs. Returns {ready, questions, demo_mode}."""
     case_text = _format_case(age, sex, symptoms, history, labs)
-    raw = await llm.chat(INTAKE_PROMPT, case_text, agent_name="intake")
+    raw = await llm.chat(
+        INTAKE_PROMPT, case_text, agent_name="intake",
+        max_tokens=600, temperature=0.2,
+    )
     result = _parse_intake_json(raw)
     result["demo_mode"] = config.demo_mode()
     return result
@@ -111,5 +114,8 @@ async def auto_answer(
     case_text = _format_case(age, sex, symptoms, history, labs)
     q_block = "\n".join(f"- {q['question']}" for q in questions)
     prompt = f"{case_text}\n\nQUESTIONS:\n{q_block}"
-    answer = await llm.chat(AUTO_ANSWER_PROMPT, prompt, agent_name="auto_answer")
+    answer = await llm.chat(
+        AUTO_ANSWER_PROMPT, prompt, agent_name="auto_answer",
+        max_tokens=700, temperature=0.3,
+    )
     return answer.strip()

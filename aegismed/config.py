@@ -40,9 +40,10 @@ def demo_mode() -> bool:
 def specialist_selection() -> str:
     """How many specialists to convene per case.
 
+    SPECIALIST_SELECTION=all      -> always run the full board (the default;
+                                     ample credits, so favor thoroughness)
     SPECIALIST_SELECTION=relevant -> run only the specialists the router picks
-                                     as relevant (the default; saves model calls)
-    SPECIALIST_SELECTION=all      -> always run the full board (e.g. for demos)
+                                     as relevant (opt-in cost-saving mode)
     """
-    setting = os.getenv("SPECIALIST_SELECTION", "relevant").strip().lower()
-    return "all" if setting == "all" else "relevant"
+    setting = os.getenv("SPECIALIST_SELECTION", "all").strip().lower()
+    return "relevant" if setting == "relevant" else "all"

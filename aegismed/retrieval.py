@@ -104,7 +104,10 @@ async def retrieve(age: str, sex: str, symptoms: str, history: str, labs: str) -
         relevant = _validate_specialties(DEMO_RETRIEVAL_SPECIALTIES)
     else:
         case_text = _format_case(age, sex, symptoms, history, labs)
-        raw = await llm.chat(RETRIEVAL_PROMPT, case_text, agent_name="retrieval")
+        raw = await llm.chat(
+            RETRIEVAL_PROMPT, case_text, agent_name="retrieval",
+            max_tokens=600, temperature=0.2,
+        )
         parsed = _parse_json(raw)
         phenotypes = parsed["key_phenotypes"]
         names = parsed["candidate_diseases"]

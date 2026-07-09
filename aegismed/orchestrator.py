@@ -89,7 +89,10 @@ async def diagnose(
     skipped = [n for n in SPECIALISTS if n not in names]
     opinions = await asyncio.gather(
         *(
-            llm.chat(specialist_prompt(name, region), grounded_case, agent_name=name)
+            llm.chat(
+                specialist_prompt(name, region), grounded_case, agent_name=name,
+                max_tokens=1536,
+            )
             for name in names
         )
     )
@@ -109,7 +112,10 @@ async def diagnose(
             for item in specialist_opinions
         )
     )
-    synthesis = await llm.chat(synthesis_prompt(region), synthesis_input, agent_name="synthesis")
+    synthesis = await llm.chat(
+        synthesis_prompt(region), synthesis_input, agent_name="synthesis",
+        max_tokens=2048,
+    )
 
     # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
     diagnoses = knowledge.extract_diagnoses(synthesis)

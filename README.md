@@ -20,7 +20,7 @@ AegisMed recreates the diagnostic power of a **multidisciplinary case conference
 4. A **synthesis agent** (the "board chair") merges the opinions into a ranked differential diagnosis with rare-disease flags, points of agreement/disagreement, the single most valuable next test, immediate safety actions, and a do-not-miss warning.
 5. Throughout, AegisMed grounds itself in **real, verified references** — Orphanet, OMIM, PubMed, and GARD links attached from a knowledge base (never invented by the AI). See [`docs/EVIDENCE.md`](docs/EVIDENCE.md).
 
-**Smart routing keeps it token-efficient:** the same pre-board step that gathers evidence also picks which specialists a case actually needs, so a typical case convenes only 3–4 of the 7 (Medical Genetics is always kept; it falls back to the full board when unsure). Set `SPECIALIST_SELECTION=all` to force all seven. Each agent is the same Gemma model given a different specialist role — cheap to run, easy to extend with more specialties.
+**By default, every case convenes the full board of all 7 specialists** — the most thorough option, made affordable by Fireworks AI's Gemma pricing. The same pre-board step that gathers evidence also picks which specialists a case actually needs (typically 3–4 of the 7; Medical Genetics is always kept, and it falls back to the full board when unsure); set `SPECIALIST_SELECTION=relevant` to opt into that leaner, cost-saving mode instead. Each agent is the same Gemma model given a different specialist role — cheap to run, easy to extend with more specialties.
 
 ```mermaid
 flowchart LR
@@ -96,6 +96,7 @@ All settings live in `.env` (see `.env.example`):
 | `FIREWORKS_API_KEY` | *(empty)* | Your Fireworks AI key ($50 free via the AMD AI Developer Program) |
 | `MODEL` | `accounts/fireworks/models/gemma-3-27b-it` | Which model powers the agents |
 | `DEMO_MODE` | `auto` | `auto` / `true` / `false` — sample output vs. real AI |
+| `SPECIALIST_SELECTION` | `all` | `all` (full 7-specialist board) / `relevant` (opt-in cost-saving routed subset) |
 
 ## Tech stack
 
