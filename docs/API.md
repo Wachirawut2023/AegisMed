@@ -181,3 +181,156 @@ if match["found_in_top_3"]:
 else:
     print(f"✗ Not in top 3. Board's top diagnosis: {match['board_top_3'][0]}")
 ```
+
+---
+
+## Case Management — Team Workflows & Case History
+
+For hospital and institution use: save board results with metadata, retrieve them for
+case-conference follow-up, and append team comments for collaborative case discussion.
+
+All case data is stored locally on the server; cases are identified by a short unique ID.
+No auth, no patient identity, no PHI — just case lookup and team collaboration primitives.
+
+---
+
+## `POST /api/cases/save` — save a board result with metadata
+
+Runs a diagnostic board (same as `/api/diagnose`) and saves the result with optional
+metadata about who submitted it and what specialty is involved. Returns a `case_id`
+that can be used to retrieve the case later.
+
+**Request:** `PatientCase` plus:
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `submitted_by` | string | no | e.g. "Dr. Smith, Cardiology" — identifies the submitter |
+| `specialty` | string | no | e.g. "Cardiology" — primary specialty for filtering |
+
+**Response:**
+
+| Field | Type | Meaning |
+|---|---|---|
+| `case_id` | string | Unique ID for this case (short UUID) |
+| `status` | string | "saved" |
+| `board_output` | object | Full diagnostic output (same as `/api/diagnose`) |
+
+### curl
+
+```bash
+curl -s -X POST http://localhost:8000/api/cases/save \
+  -H "Content-Type: application/json" \
+  -d '{
+        "age": "24",
+        "sex": "male",
+        "symptoms": "burning pain in hands and feet since childhood",
+        "history": "maternal uncle died of renal failure",
+        "labs": "proteinuria; LVH on ECG",
+        "submitted_by": "Dr. Johnson, Cardiology",
+        "specialty": "Cardiology"
+      }' | jq '.case_id'
+```
+
+---
+
+## `GET /api/cases/{case_id}` — retrieve a saved case
+
+Fetches the full case history including the board output, metadata, and all team comments.
+
+**Response:**
+
+| Field | Type | Meaning |
+|---|---|---|
+| `case_id` | string | The case ID |
+| `timestamp` | string | ISO 8601 timestamp when the case was saved |
+| `submitted_by` | string | Submitter name/title |
+| `specialty` | string | Primary specialty |
+| `board_output` | object | Full diagnostic output (see `/api/diagnose` response) |
+| `team_comments` | array | Comments appended by team members (see below) |
+
+**team_comments** structure:
+
+```json
+[
+  {
+    "timestamp": "2026-07-09T12:34:56.789123",
+    "author": "Dr. Smith, Neurology",
+    "text": "Agreed with board. Recommend MRI follow-up in 3 months."
+  }
+]
+```
+
+### curl
+
+```bash
+curl -s http://localhost:8000/api/cases/d21efb4c | jq '{case_id, submitted_by, specialty, team_comments}'
+```
+
+---
+
+## `GET /api/cases` — list saved cases
+
+Lists case summaries (not full board output), optionally filtered by specialty.
+Most recent first.
+
+**Query parameters:**
+
+| Param | Type | Notes |
+|---|---|---|
+| `specialty` | string | Filter by specialty (e.g. "Cardiology") |
+| `limit` | int | Max results to return (default: 50) |
+
+**Response:** Array of case summaries:
+
+```json
+[
+  {
+    "case_id": "d21efb4c",
+    "timestamp": "2026-07-09T12:34:56.789123",
+    "submitted_by": "Dr. Johnson, Cardiology",
+    "specialty": "Cardiology",
+    "top_diagnosis": "Fabry disease",
+    "num_comments": 1
+  }
+]
+```
+
+### curl
+
+```bash
+curl -s 'http://localhost:8000/api/cases?specialty=Cardiology&limit=5' | jq '.[] | {case_id, specialty, top_diagnosis}'
+```
+
+---
+
+## `POST /api/cases/{case_id}/comment` — append a team comment
+
+Adds a timestamped comment from a team member to a case for case-conference discussion,
+follow-up notes, or outcome tracking.
+
+**Request:**
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `author` | string | **yes** | e.g. "Dr. Smith, Neurology" |
+| `text` | string | **yes** | Comment text; ≤ 1000 chars |
+
+**Response:**
+
+```json
+{
+  "status": "comment added",
+  "case_id": "d21efb4c"
+}
+```
+
+### curl
+
+```bash
+curl -s -X POST http://localhost:8000/api/cases/d21efb4c/comment \
+  -H "Content-Type: application/json" \
+  -d '{
+        "author": "Dr. Smith, Neurology",
+        "text": "Agreed with board conclusion. Recommend MRI follow-up in 3 months."
+      }' | jq '.'
+```
