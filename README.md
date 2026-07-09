@@ -87,6 +87,23 @@ held-out cases"* — written to `eval/results.md`. See
 [`docs/DATA_AND_EVAL.md`](docs/DATA_AND_EVAL.md) for a beginner-friendly walkthrough
 and [`data/SOURCES.md`](data/SOURCES.md) for dataset attribution and licenses.
 
+## Fine-tuning (optional)
+
+Want to push the accuracy number higher? You can **fine-tune** the Gemma model
+on the same rare-disease cases so the board chair learns AegisMed's output
+structure and reaches for the correct rare diagnosis more reliably. It runs on
+Fireworks AI (AMD hardware) and costs little — the base model name is the only
+thing that changes afterwards.
+
+```bash
+python data/build_dataset.py            # get the data (free, no API key)
+python finetune/build_finetune_data.py  # shape it into training conversations (free)
+python finetune/run_finetune.py         # launch the job (needs your Fireworks key)
+```
+
+Then set `MODEL` in `.env` to the tuned model it prints and re-run the eval to
+measure the lift. Full walkthrough: [`docs/FINETUNE.md`](docs/FINETUNE.md).
+
 ## Configuration
 
 All settings live in `.env` (see `.env.example`):
@@ -119,6 +136,7 @@ aegismed/
 static/index.html  # the UI
 data/              # dataset builder + generated eval/demo cases (public sources)
 eval/              # evaluation harness (scores AegisMed on known cases)
+finetune/          # fine-tuning pipeline (build training data + launch on Fireworks)
 docs/              # hackathon guide, architecture, roadmap, checklist, data & eval
 ```
 
