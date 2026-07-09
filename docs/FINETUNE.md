@@ -70,13 +70,21 @@ production, and the skill didn't transfer as well as it should have. Use
 `--limit 10` for a quick, cheap smoke test, and `--delay` to go easier on
 rate limits.
 
-> **Honesty note.** The gold **answers** are still constructed from each
-> case's verified ground-truth diagnosis, not written by a stronger "teacher"
-> model. So they teach *format* and *correct-diagnosis recall* with faithful
-> but generic reasoning, layered on top of now-real specialist input. If you
-> want richer clinical reasoning in the targets too, generate them with a
-> stronger model first (a "distillation" teacher) and feed those into the
-> same builder — the format is unchanged.
+> **Honesty note.** By default the gold **answers** are still constructed
+> from each case's verified ground-truth diagnosis with a fixed template —
+> faithful but generic reasoning, layered on top of now-real specialist
+> input. Pass `--teacher-model accounts/fireworks/models/<a stronger model>`
+> to distill richer answers instead: that model is shown the case's real
+> specialist opinions and the verified diagnosis, and writes case-specific
+> reasoning for why it fits — citing the same specialists' findings the
+> synthesis agent will actually see. This is one more real model call per
+> case. Picking a teacher: many current strong models write visible
+> chain-of-thought directly into their reply before the actual answer, which
+> can get cut off by the token budget or leak into the training target —
+> `build_finetune_data.py` asks for extra headroom and strips everything
+> before the `**Ranked differential diagnosis:**` heading, but a model that
+> answers directly and follows the requested structure works best. Sanity
+> check a `--limit 1` run before committing to the full set.
 
 ### Keeping the eval score honest: the train/eval split
 

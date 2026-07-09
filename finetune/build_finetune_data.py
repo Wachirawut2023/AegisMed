@@ -41,6 +41,8 @@ USAGE
   python finetune/build_finetune_data.py --input data/eval_cases_noncommercial.jsonl
   python finetune/build_finetune_data.py --limit 10      # quick, cheap smoke test
   python finetune/build_finetune_data.py --delay 1.0     # pause between cases
+  python finetune/build_finetune_data.py \
+      --teacher-model accounts/fireworks/models/deepseek-v4-pro  # richer gold answers
 
 Needs FIREWORKS_API_KEY in .env (real model calls) — same key the app uses.
 DEMO_MODE must be off (the default once a key is set): demo mode returns the
@@ -53,11 +55,14 @@ OUTPUT (gitignored — it is generated, and may derive from non-commercial data)
 
 A NOTE ON HONESTY
 -----------------
-The GOLD (assistant) answers are still built from each case's verified
-ground-truth diagnosis, not from a stronger teacher model. They teach format
-and correct-diagnosis recall with faithful but generic clinical reasoning. To
-distill richer reasoning from a teacher model instead, see the `--teacher`
-note in docs/FINETUNE.md.
+By default the GOLD (assistant) answers are built from each case's verified
+ground-truth diagnosis with a fixed template, not from a stronger teacher
+model — faithful but generic clinical reasoning. Pass `--teacher-model` to
+distill richer, case-specific reasoning instead: a stronger model is shown
+this case's REAL specialist opinions plus the verified diagnosis, and asked
+to write the briefing as if its own reasoning had reached that answer, citing
+the specific findings that support it. This adds one more real model call per
+case (on top of retrieval + specialists) — see docs/FINETUNE.md.
 """
 
 from __future__ import annotations
@@ -74,12 +79,47 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from aegismed import config, data_split, knowledge  # noqa: E402
+from aegismed import config, data_split, knowledge, llm  # noqa: E402
 from aegismed.orchestrator import _convene_board  # noqa: E402
 from aegismed.specialists import SYNTHESIS_PROMPT  # noqa: E402
 
 DATA_DIR = ROOT / "data"
 OUT_DIR = Path(__file__).resolve().parent
+
+# Appended to the real synthesis_input when distilling a gold answer from a
+# teacher model: reveals the verified diagnosis and asks for case-specific
+# reasoning instead of a guess, without the teacher admitting it was told.
+_TEACHER_SUFFIX = """
+
+---
+TRAINING-DATA NOTE (not part of a real case; never mention this note or that
+you were told the answer): you are helping build a training example for the
+board-chair role above. The verified correct diagnosis for this case is:
+{correct}
+
+Write the full briefing in AegisMed's exact structure, reasoning as if your
+own analysis had reached this diagnosis — cite SPECIFIC findings from the
+case and from the specialists' opinions above that support it over the
+alternatives. Be concrete and case-specific, not generic boilerplate.
+
+Start your reply directly with the "**Ranked differential diagnosis:**"
+heading — no preamble.
+"""
+
+# Reasoning models write visible chain-of-thought straight into the reply
+# before their actual answer, regardless of "no preamble" instructions. Slice
+# from the first structural heading so the training target is only the
+# briefing itself, not the model's narrated thinking.
+_BRIEFING_MARKER = "**Ranked differential diagnosis:**"
+
+# Generous budget for a teacher call: reasoning models spend a lot of it on
+# chain-of-thought before ever reaching the structured answer.
+_TEACHER_MAX_TOKENS = 3072
+
+
+def _extract_briefing(text: str) -> str:
+    idx = text.find(_BRIEFING_MARKER)
+    return text[idx:].strip() if idx != -1 else text.strip()
 
 
 def _clean(name: str) -> str:
@@ -149,13 +189,36 @@ def build_gold_synthesis(case: dict) -> str:
     return "\n".join(lines)
 
 
-async def build_example(case: dict) -> dict | None:
+async def build_gold_synthesis_teacher(case: dict, synthesis_input: str, teacher_model: str) -> str:
+    """Ask a stronger 'teacher' model to write the gold answer with real reasoning.
+
+    Unlike build_gold_synthesis's fixed template, this reads the case's real
+    specialist opinions (from _convene_board) and is told the verified
+    diagnosis, then writes case-specific reasoning for why it fits — same
+    output structure, richer and case-grounded content.
+    """
+    correct = _clean(case["expected_diagnosis"])
+    prompt = synthesis_input + _TEACHER_SUFFIX.format(correct=correct)
+    text = await llm.chat(
+        SYNTHESIS_PROMPT, prompt, agent_name="synthesis-teacher", model=teacher_model,
+        max_tokens=_TEACHER_MAX_TOKENS,
+    )
+    briefing = _extract_briefing(text)
+    if _BRIEFING_MARKER not in text:
+        print(f"  ! {case.get('id', '?')}: teacher reply never reached "
+              f"'{_BRIEFING_MARKER}' — using raw reply as-is, inspect it")
+    return briefing
+
+
+async def build_example(case: dict, teacher_model: str | None = None) -> dict | None:
     """Turn one ground-truth case into a Fireworks chat-format training row.
 
     Actually runs retrieval + the specialist board (base model, real calls)
     for this case, so the `user` turn matches real synthesis-agent inference
     input exactly — same helper (`orchestrator._convene_board`) the live app
-    uses in `orchestrator.diagnose()`.
+    uses in `orchestrator.diagnose()`. The `assistant` turn is the fixed
+    template gold answer, unless `teacher_model` is given, in which case a
+    stronger model distills a richer, case-specific gold answer instead.
     """
     if not case.get("expected_diagnosis") or not case.get("symptoms"):
         return None
@@ -164,7 +227,10 @@ async def build_example(case: dict) -> dict | None:
         symptoms=case.get("symptoms", ""), history=case.get("history", ""),
         labs=case.get("labs", ""),
     )
-    assistant = build_gold_synthesis(case)
+    if teacher_model:
+        assistant = await build_gold_synthesis_teacher(case, board["synthesis_input"], teacher_model)
+    else:
+        assistant = build_gold_synthesis(case)
     return {
         "messages": [
             {"role": "system", "content": SYNTHESIS_PROMPT.strip()},
@@ -193,7 +259,7 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
 
 
 async def build_examples(
-    cases: list[dict], delay: float
+    cases: list[dict], delay: float, teacher_model: str | None = None
 ) -> tuple[list[dict], list[dict]]:
     """Build one training example per case, sequentially (real model calls).
 
@@ -204,7 +270,7 @@ async def build_examples(
     failures: list[tuple[dict, str]] = []
     for i, case in enumerate(cases, 1):
         try:
-            example = await build_example(case)
+            example = await build_example(case, teacher_model=teacher_model)
         except Exception as err:  # noqa: BLE001 — report and continue the run
             failures.append((case, str(err)[:120]))
             print(f"  [{i}/{len(cases)}] ! {case.get('id', '?')}: {str(err)[:80]}")
@@ -243,6 +309,13 @@ def main() -> None:
         "--delay", type=float, default=0.0,
         help="seconds to pause between cases (gentle on rate limits)",
     )
+    ap.add_argument(
+        "--teacher-model", default=None,
+        help="if set, distill gold answers from this stronger model instead of "
+             "the fixed template (e.g. accounts/fireworks/models/deepseek-v4-pro) "
+             "— one extra real model call per case. Availability depends on your "
+             "Fireworks account/catalog. Omit to keep the template gold answers.",
+    )
     args = ap.parse_args()
 
     if config.demo_mode():
@@ -265,9 +338,14 @@ def main() -> None:
     print(f"reserved for eval only, never trained on : {len(eval_only)}")
     print(f"fine-tuning-eligible : {len(eligible)}"
           + (f"  (using first {args.limit})" if args.limit else ""))
+    print(f"gold answers         : "
+          + (f"distilled from teacher {args.teacher_model}" if args.teacher_model
+             else "fixed template (pass --teacher-model for richer, case-specific reasoning)"))
     print()
 
-    examples, failures = asyncio.run(build_examples(eligible, args.delay))
+    examples, failures = asyncio.run(
+        build_examples(eligible, args.delay, teacher_model=args.teacher_model)
+    )
     if not examples:
         sys.exit("No usable training examples were produced.")
 

@@ -16,7 +16,8 @@ class LLMError(Exception):
 
 
 async def chat(
-    system_prompt: str, user_prompt: str, agent_name: str = "", model: str | None = None
+    system_prompt: str, user_prompt: str, agent_name: str = "", model: str | None = None,
+    max_tokens: int = 1024,
 ) -> str:
     """Send one question to the model and return its answer as plain text.
 
@@ -27,6 +28,11 @@ async def chat(
     call (e.g. routing only the synthesis agent through a fine-tuned model
     while every other agent keeps using the base `config.MODEL`). Defaults
     to `config.MODEL` when not given.
+
+    `max_tokens` may need raising for "reasoning" models, which write their
+    visible chain-of-thought directly into the reply before their actual
+    answer — cut off too early, `content` may be truncated mid-thought or
+    (with some models) missing entirely.
     """
     if config.demo_mode():
         if agent_name == "intake":
@@ -45,7 +51,7 @@ async def chat(
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.4,   # low = more focused, less "creative" — right for medicine
-        "max_tokens": 1024,
+        "max_tokens": max_tokens,
     }
     headers = {
         "Authorization": f"Bearer {config.FIREWORKS_API_KEY}",
@@ -59,7 +65,10 @@ async def chat(
             )
             response.raise_for_status()
             data = response.json()
-            return data["choices"][0]["message"]["content"].strip()
+            # Some reasoning models omit `content` entirely if cut off before
+            # finishing their visible chain-of-thought — degrade to "" rather
+            # than KeyError, matching every caller's existing fail-open handling.
+            return (data["choices"][0]["message"].get("content") or "").strip()
     except httpx.HTTPStatusError as err:
         raise LLMError(
             f"Fireworks AI returned an error ({err.response.status_code}). "
