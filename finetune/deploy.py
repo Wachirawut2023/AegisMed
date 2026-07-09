@@ -50,6 +50,11 @@ BASE_MODEL = "accounts/fireworks/models/gemma-3-27b-it"
 # One 80GB H100 comfortably holds the ~28B base weights plus the small adapter.
 ACCELERATOR = "NVIDIA_H100_80GB"
 
+# Name for the underlying base-model deployment the SDK creates. "on-demand-lora"
+# requires this id; the SDK creates a deployment with this name if it doesn't
+# already exist, then loads the LoRA addon onto it.
+BASE_DEPLOYMENT_ID = "aegismed-ab-base"
+
 INFERENCE_URL = "https://api.fireworks.ai/inference/v1/chat/completions"
 CONTROL_PLANE = "https://api.fireworks.ai/v1"
 
@@ -80,17 +85,42 @@ def _require_key() -> str:
     return config.FIREWORKS_API_KEY
 
 
-def _build_llm(account: str):
-    """Construct the SDK LLM handle for the tuned adapter as an on-demand LoRA deployment.
+def _lora_llm(account: str):
+    """SDK handle for the tuned adapter as an on-demand LoRA deployment.
 
     Passing the *adapter* as the model with deployment_type="on-demand-lora" tells
-    the SDK to provision the base model on a GPU AND load the adapter onto it.
+    the SDK to provision the base model (auto-detected from the adapter's PEFT
+    metadata) on a GPU under `base_id`, then load the adapter onto that same
+    deployment — this is what makes it a true Multi-LoRA (base + tuned, same host).
+    `apply()`/`delete_deployment()` on *this* handle only manage the LoRA addon
+    layer, not the underlying GPU deployment — see `_base_llm` for that.
     """
     from fireworks import LLM  # imported lazily so `status`/errors stay fast
 
     return LLM(
         model=TUNED_MODEL.format(account=account),
         deployment_type="on-demand-lora",
+        base_id=BASE_DEPLOYMENT_ID,
+        accelerator_type=ACCELERATOR,
+        enable_addons=True,
+        api_key=config.FIREWORKS_API_KEY,
+    )
+
+
+def _base_llm(account: str):
+    """SDK handle for the underlying base-model GPU deployment itself.
+
+    Same `id` as `base_id` above, so this addresses the identical deployment.
+    Needed because `scale_to_zero`/`delete_deployment` on the LoRA handle only
+    touch the addon — deleting the actual GPU deployment (what stops billing)
+    requires a handle with deployment_type="on-demand" for the base model.
+    """
+    from fireworks import LLM
+
+    return LLM(
+        model=BASE_MODEL,
+        deployment_type="on-demand",
+        id=BASE_DEPLOYMENT_ID,
         accelerator_type=ACCELERATOR,
         enable_addons=True,
         api_key=config.FIREWORKS_API_KEY,
@@ -138,18 +168,6 @@ def _first_working(candidates: list[str], label: str) -> str:
     )
 
 
-def _deployment_name(llm) -> str:
-    """Best-effort extraction of the deployment resource name from the SDK handle."""
-    dep = llm.get_deployment()
-    if dep is None:
-        raise DeployError("Deployment not found after apply() — nothing to reference.")
-    # Deployment protos expose `.name`; DeployedModel protos expose `.deployment`.
-    name = getattr(dep, "name", "") or getattr(dep, "deployment", "")
-    if not name:
-        raise DeployError(f"Could not read deployment name from {dep!r}.")
-    return name
-
-
 def cmd_up() -> None:
     account = _account_id()
     _require_key()
@@ -161,10 +179,19 @@ def cmd_up() -> None:
     print(f"  accelerator: {ACCELERATOR}")
     print("  This can take several minutes while the GPU warms up.\n")
 
-    llm = _build_llm(account)
-    llm.apply(wait=True)  # create the deployment + load the adapter, block until ready
+    # Create the base GPU deployment explicitly first, with accelerator_type set.
+    # (The SDK's on-demand-lora path creates this internally too, but its internal
+    # call omits accelerator_type and fails with "accelerator_type must be
+    # specified" — creating it ourselves first means the LoRA step below finds an
+    # existing, already-READY deployment and just reuses it.)
+    print("  Step A: creating base deployment…")
+    _base_llm(account).apply(wait=True)
 
-    dep_name = _deployment_name(llm)
+    print("  Step B: loading tuned LoRA adapter onto it…")
+    _lora_llm(account).apply(wait=True)
+
+    # Deterministic — we chose BASE_DEPLOYMENT_ID ourselves, no need to introspect protos.
+    dep_name = f"accounts/{account}/deployments/{BASE_DEPLOYMENT_ID}"
     print(f"\nDeployment ready: {dep_name}")
 
     # Resolve the exact `model` strings the raw inference endpoint accepts.
@@ -200,38 +227,35 @@ def cmd_down() -> None:
     account = _account_id()
     _require_key()
 
-    dep_name = ""
-    if AB_MODELS_FILE.exists():
-        try:
-            dep_name = json.loads(AB_MODELS_FILE.read_text(encoding="utf-8")).get("_deployment", "")
-        except Exception:  # noqa: BLE001
-            dep_name = ""
+    dep_name = f"accounts/{account}/deployments/{BASE_DEPLOYMENT_ID}"
 
-    # Preferred path: let the SDK scale down and delete.
-    deleted = False
+    # Layer 1: unload the LoRA addon (harmless if already gone / never loaded).
     try:
-        llm = _build_llm(account)
-        try:
-            llm.scale_to_zero()
-        except Exception:  # noqa: BLE001 — scaling is best-effort; deletion is what matters
-            pass
-        llm.delete_deployment(wait=True)
-        deleted = True
-        print("✓ Deployment deleted via SDK — the credit meter has stopped.")
+        _lora_llm(account).delete_deployment(wait=True)
+        print("✓ LoRA addon unloaded.")
     except Exception as err:  # noqa: BLE001
-        print(f"SDK teardown did not complete ({err}).")
+        print(f"(LoRA unload skipped: {err})")
 
-    # Fallback: delete the recorded deployment directly via REST.
-    if not deleted and dep_name:
+    # Layer 2: delete the base GPU deployment itself — this is what actually stops billing.
+    base_deleted = False
+    try:
+        _base_llm(account).delete_deployment(wait=True)
+        base_deleted = True
+        print(f"✓ Base deployment {dep_name} deleted via SDK — the credit meter has stopped.")
+    except Exception as err:  # noqa: BLE001
+        print(f"SDK base-deployment teardown did not complete ({err}).")
+
+    # Fallback: delete the deployment directly via REST.
+    if not base_deleted:
         headers = {"Authorization": f"Bearer {config.FIREWORKS_API_KEY}"}
         r = httpx.delete(f"{CONTROL_PLANE}/{dep_name}", headers=headers, timeout=120)
-        if r.status_code in (200, 204):
-            print(f"✓ Deployment {dep_name} deleted via REST — the credit meter has stopped.")
-            deleted = True
+        if r.status_code in (200, 204, 404):
+            print(f"✓ Base deployment {dep_name} deleted via REST — the credit meter has stopped.")
+            base_deleted = True
         else:
             print(f"✗ REST delete returned HTTP {r.status_code}: {r.text[:200]}")
 
-    if not deleted:
+    if not base_deleted:
         print(
             "\n⚠ Could not confirm teardown automatically. Check the Fireworks dashboard "
             "(Deployments) and delete any running deployment to stop credit usage."
