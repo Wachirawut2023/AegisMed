@@ -108,7 +108,16 @@ def run_eval_for_model(model_name: str, model_id: str, limit: int | None, delay:
 
 
 def parse_results_file(path: Path) -> dict:
-    """Extract key metrics from a results.md file."""
+    """Extract key metrics from a results.md file.
+
+    Supports two per-case table shapes written by eval/run_eval.py: the
+    legacy 4-column "| Case | Source | Correct diagnosis | Found? |" (a
+    single board-wide hit signal), and the current 6-column
+    "| Case | Source | Correct diagnosis | Board? | Synthesis? | Top? |"
+    (adds signals isolated to the synthesis agent's own output). Older saved
+    results.md files only have the legacy shape — `has_strict_signals` tells
+    write_comparison() whether the extra columns are available for this file.
+    """
     if not path.exists():
         return {}
 
@@ -121,6 +130,7 @@ def parse_results_file(path: Path) -> dict:
         "accuracy": "unknown",
         "by_source": {},
         "cases": [],
+        "has_strict_signals": False,
     }
 
     # Parse headline: "correct diagnosis surfaced in **X/Y = Z%** of cases"
@@ -132,8 +142,12 @@ def parse_results_file(path: Path) -> dict:
                 pct = parts[-1].split("%")[0].strip()
                 data["accuracy"] = pct
 
-    # Parse per-source table
+    # Parse per-source table, then the per-case table. A state flag set once
+    # on the header row (rather than testing every row's content) avoids the
+    # substring trap where "CUPCase" contains the literal word "Case" and
+    # would otherwise get mistaken for the header / skipped as a data row.
     in_source_table = False
+    case_header_seen = False
     for line in lines:
         if "| Source | Hit rate |" in line:
             in_source_table = True
@@ -145,25 +159,51 @@ def parse_results_file(path: Path) -> dict:
                 rate = cells[1].split("(")[0].strip() if "(" in cells[1] else cells[1]
                 data["by_source"][src] = rate
 
-        # Parse per-case table for hits/misses
-        if "| Case | Source | Correct diagnosis | Found? |" in line:
+        if line.startswith("| Case | Source | Correct diagnosis |"):
             in_source_table = False
-        # "Case" not in line was meant to skip only the header row above, but
-        # it also matched (and silently dropped) every CUPCase-sourced data
-        # row, since "CUPCase" contains "Case" as a substring. Check for the
-        # literal header prefix instead.
-        if (not in_source_table and line.startswith("| ")
-                and not line.startswith("| Case ") and "---" not in line):
-            cells = [c.strip() for c in line.split("|")[1:-1]]
-            if len(cells) == 4:
-                data["cases"].append({
-                    "id": cells[0],
-                    "source": cells[1],
-                    "diagnosis": cells[2],
-                    "found": cells[3] == "✅",
-                })
+            case_header_seen = True
+            data["has_strict_signals"] = "Synthesis?" in line
+            continue
+        if not case_header_seen or in_source_table or "---" in line:
+            continue
+        if not line.startswith("| "):
+            continue
+        cells = [c.strip() for c in line.split("|")[1:-1]]
+        if data["has_strict_signals"] and len(cells) == 6:
+            data["cases"].append({
+                "id": cells[0], "source": cells[1], "diagnosis": cells[2],
+                "found": cells[3] == "✅",
+                "synthesis_found": cells[4] == "✅",
+                "top_found": cells[5] == "✅",
+            })
+        elif not data["has_strict_signals"] and len(cells) == 4:
+            data["cases"].append({
+                "id": cells[0], "source": cells[1], "diagnosis": cells[2],
+                "found": cells[3] == "✅",
+            })
 
     return data
+
+
+def _win_breakdown(cases_m1: dict, cases_m2: dict, key: str) -> tuple[int, int, int, int]:
+    """(both_right, only_m1, only_m2, both_wrong) for a given per-case hit key."""
+    both_right = sum(
+        1 for cid in cases_m1
+        if cases_m1[cid].get(key) and cases_m2.get(cid, {}).get(key)
+    )
+    only_m1 = sum(
+        1 for cid in cases_m1
+        if cases_m1[cid].get(key) and not cases_m2.get(cid, {}).get(key)
+    )
+    only_m2 = sum(
+        1 for cid in cases_m2
+        if cases_m2[cid].get(key) and not cases_m1.get(cid, {}).get(key)
+    )
+    both_wrong = sum(
+        1 for cid in cases_m1
+        if not cases_m1[cid].get(key) and not cases_m2.get(cid, {}).get(key)
+    )
+    return both_right, only_m1, only_m2, both_wrong
 
 
 def write_comparison(results: dict[str, dict]) -> None:
@@ -205,22 +245,7 @@ def write_comparison(results: dict[str, dict]) -> None:
         cases_m1 = {c["id"]: c for c in results[m1].get("cases", [])}
         cases_m2 = {c["id"]: c for c in results[m2].get("cases", [])}
 
-        both_right = sum(
-            1 for cid in cases_m1
-            if cases_m1[cid]["found"] and cases_m2.get(cid, {}).get("found")
-        )
-        only_m1 = sum(
-            1 for cid in cases_m1
-            if cases_m1[cid]["found"] and not cases_m2.get(cid, {}).get("found")
-        )
-        only_m2 = sum(
-            1 for cid in cases_m2
-            if cases_m2[cid]["found"] and not cases_m1.get(cid, {}).get("found")
-        )
-        both_wrong = sum(
-            1 for cid in cases_m1
-            if not cases_m1[cid]["found"] and not cases_m2.get(cid, {}).get("found")
-        )
+        both_right, only_m1, only_m2, both_wrong = _win_breakdown(cases_m1, cases_m2, "found")
 
         lines.append(f"- Both correct: {both_right}")
         lines.append(f"- Only {m1}: {only_m1}")
@@ -241,6 +266,33 @@ def write_comparison(results: dict[str, dict]) -> None:
                 if c["found"] and not cases_m1.get(cid, {}).get("found"):
                     lines.append(f"- {cid}: {c['diagnosis']}")
             lines.append("")
+
+        # The board-level breakdown above is dominated by the (identical)
+        # specialists when only SYNTHESIS_MODEL differs between arms. Add the
+        # stricter, synthesis-isolated breakdown when both files have it.
+        if results[m1].get("has_strict_signals") and results[m2].get("has_strict_signals"):
+            for label, key in (("Synthesis-only signal", "synthesis_found"),
+                                ("Synthesis top-ranked signal", "top_found")):
+                sr, so1, so2, sw = _win_breakdown(cases_m1, cases_m2, key)
+                lines.append(f"## Case-by-case wins — {label}\n")
+                lines.append(
+                    f"_Isolates the synthesis agent's own output (see "
+                    f"docs/FINETUNE_EVAL_REPORT.md) — this is the signal that "
+                    f"actually changes when only SYNTHESIS_MODEL differs._\n"
+                )
+                lines.append(f"- Both correct: {sr}")
+                lines.append(f"- Only {m1}: {so1}")
+                lines.append(f"- Only {m2}: {so2}")
+                lines.append(f"- Both missed: {sw}")
+                lines.append("")
+        else:
+            lines.append(
+                "_Synthesis-isolated signal not available for this comparison "
+                "— one or both results files predate the stricter metrics "
+                "(re-run eval/run_eval.py to get them). Falling back to the "
+                "board-level signal above, which is dominated by the "
+                "specialists when only SYNTHESIS_MODEL differs._\n"
+            )
 
     out.write_text("\n".join(lines), encoding="utf-8")
     print(f"\n✓ Comparison written to {out.relative_to(ROOT)}")

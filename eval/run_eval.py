@@ -3,12 +3,17 @@
 WHAT THIS DOES (plain language)
 -------------------------------
 For every test case in data/eval_cases.jsonl it:
-  1. sends the case through AegisMed's five-specialist board,
+  1. sends the case through AegisMed's specialist board,
   2. reads the board's answer,
-  3. checks whether the KNOWN-correct diagnosis appears anywhere in that answer.
+  3. checks whether the KNOWN-correct diagnosis appears in that answer, at
+     three levels of strictness: anywhere in the whole board's output, in the
+     synthesis agent's own reply, and as the synthesis agent's #1-ranked pick.
 
-Then it prints a score: "AegisMed named the correct rare diagnosis in X% of
-cases." That single number is the headline you can put in your demo video.
+The three-level split matters when comparing two SYNTHESIS_MODEL configs
+(e.g. base vs. fine-tuned) with identical specialists: the "board" signal is
+dominated by the (identical) specialists and can look unchanged even when the
+synthesis agent's own output changed a lot — use "synthesis" or "top" to
+isolate that agent's actual effect. See docs/FINETUNE_EVAL_REPORT.md.
 
 IMPORTANT: this needs a real AI to be meaningful, so set your Fireworks API key
 first (see .env). In demo mode the app always returns the same sample answer,
@@ -56,6 +61,28 @@ def _normalize(text: str) -> str:
 def _significant_tokens(name: str) -> list[str]:
     return [t for t in _normalize(name).split()
             if len(t) >= 4 and t not in _STOPWORDS]
+
+
+# Same literal heading finetune/build_finetune_data.py's _BRIEFING_MARKER uses
+# to find where a synthesis reply's structured briefing begins — kept as a
+# separate constant (not a cross-import) since these are two independent CLI
+# scripts, but the value must stay in sync with specialists.SYNTHESIS_PROMPT's
+# documented output structure.
+_BRIEFING_MARKER = "**Ranked differential diagnosis:**"
+
+
+def _top_ranked_line(synthesis: str) -> str:
+    """The synthesis agent's own #1 pick — the first non-blank line after the
+    ranked-differential heading, e.g. "1. Fabry disease [RARE] — high...".
+    Returns "" if the heading (or a line after it) isn't found.
+    """
+    idx = synthesis.find(_BRIEFING_MARKER)
+    if idx == -1:
+        return ""
+    for line in synthesis[idx + len(_BRIEFING_MARKER):].splitlines():
+        if line.strip():
+            return line.strip()
+    return ""
 
 
 def is_hit(board_text: str, aliases: list[str]) -> bool:
@@ -124,9 +151,21 @@ async def score_case(case: dict, alias_table: dict, use_intake: bool = True) -> 
     aliases = set(case.get("expected_aliases", []))
     aliases.add(case["expected_diagnosis"])
     aliases.update(alias_table.get(case["expected_diagnosis"], []))
-    hit = is_hit(board_text, sorted(aliases))
+    aliases = sorted(aliases)
+
+    # Three signals, loosest to strictest. `hit` counts a mention anywhere in
+    # the WHOLE board (synthesis + all specialists) — useful for "did the
+    # pipeline surface it at all", but specialists run identically regardless
+    # of which model handles synthesis, so this alone can't isolate what a
+    # fine-tuned synthesis agent actually changed. `synthesis_hit` restricts
+    # the same check to the synthesis agent's own reply. `synthesis_top_hit`
+    # is strictest: did the synthesis agent literally rank it #1.
+    hit = is_hit(board_text, aliases)
+    synthesis_hit = is_hit(result["synthesis"], aliases)
+    synthesis_top_hit = is_hit(_top_ranked_line(result["synthesis"]), aliases)
     return {"id": case["id"], "source": case["source"],
             "expected": case["expected_diagnosis"], "hit": hit,
+            "synthesis_hit": synthesis_hit, "synthesis_top_hit": synthesis_top_hit,
             "intake_questions": n_questions}
 
 
@@ -155,13 +194,17 @@ async def main_async(args) -> None:
         except Exception as e:  # noqa: BLE001 — report and continue the run
             row = {"id": case["id"], "source": case["source"],
                    "expected": case["expected_diagnosis"], "hit": False,
+                   "synthesis_hit": False, "synthesis_top_hit": False,
                    "error": str(e)[:80]}
         rows.append(row)
         mark = "✓" if row["hit"] else "·"
+        smark = "✓" if row["synthesis_hit"] else "·"
+        tmark = "✓" if row["synthesis_top_hit"] else "·"
         q = row.get("intake_questions")
         qnote = f" (+{q}q)" if q else ""
         note = f"  ! {row['error']}" if row.get("error") else ""
-        print(f"  [{i}/{len(cases)}] {mark} {row['expected'][:46]}{qnote}{note}")
+        print(f"  [{i}/{len(cases)}] board={mark} synth={smark} top={tmark} "
+              f"{row['expected'][:40]}{qnote}{note}")
         if args.delay:
             time.sleep(args.delay)
 
@@ -173,9 +216,13 @@ def write_report(
 ) -> None:
     total = len(rows)
     hits = sum(r["hit"] for r in rows)
+    synth_hits = sum(r["synthesis_hit"] for r in rows)
+    top_hits = sum(r["synthesis_top_hit"] for r in rows)
     pct = 100 * hits / total if total else 0
+    synth_pct = 100 * synth_hits / total if total else 0
+    top_pct = 100 * top_hits / total if total else 0
 
-    # per-source breakdown
+    # per-source breakdown (board-level hit, the loosest/legacy signal)
     per: dict[str, list[int]] = {}
     for r in rows:
         per.setdefault(r["source"], [0, 0])
@@ -201,25 +248,45 @@ def write_report(
     lines.append(f"## Headline: correct diagnosis surfaced in "
                  f"**{hits}/{total} = {pct:.0f}%** of cases")
     lines.append("")
+    lines.append(
+        "Three signals, loosest to strictest. `board` counts a mention anywhere "
+        "in the whole board's output (all specialists + synthesis) — specialists "
+        "run the same regardless of which model handles synthesis, so this alone "
+        "can't isolate a fine-tuned synthesis agent's effect. `synthesis` "
+        "restricts the same check to the synthesis agent's own reply. `top` is "
+        "strictest: did the synthesis agent literally rank it #1."
+    )
+    lines.append("")
+    lines.append(f"| Signal | Hits |")
+    lines.append("|---|---|")
+    lines.append(f"| board (legacy headline) | {hits}/{total} ({pct:.0f}%) |")
+    lines.append(f"| synthesis | {synth_hits}/{total} ({synth_pct:.0f}%) |")
+    lines.append(f"| synthesis top-ranked | {top_hits}/{total} ({top_pct:.0f}%) |")
+    lines.append("")
+    lines.append("## Per-source (board signal)")
     lines.append("| Source | Hit rate |")
     lines.append("|---|---|")
     for src, (h, n) in sorted(per.items()):
         lines.append(f"| {src} | {h}/{n} ({100*h/n:.0f}%) |")
     lines.append("")
     lines.append("## Per-case")
-    lines.append("| Case | Source | Correct diagnosis | Found? |")
-    lines.append("|---|---|---|---|")
+    lines.append("| Case | Source | Correct diagnosis | Board? | Synthesis? | Top? |")
+    lines.append("|---|---|---|---|---|---|")
     for r in rows:
         found = "✅" if r["hit"] else "❌"
+        sfound = "✅" if r["synthesis_hit"] else "❌"
+        tfound = "✅" if r["synthesis_top_hit"] else "❌"
         exp = r["expected"].replace("|", "/")
-        lines.append(f"| {r['id']} | {r['source']} | {exp} | {found} |")
+        lines.append(f"| {r['id']} | {r['source']} | {exp} | {found} | {sfound} | {tfound} |")
     lines.append("")
-    lines.append("_“Found” means the correct diagnosis (or a known synonym) "
-                 "appeared anywhere in the board's output. Matching is text-based "
-                 "and approximate; skim mismatches by hand before trusting a number._")
+    lines.append("_Matching is text-based and approximate (substring/token overlap "
+                 "against known aliases); skim mismatches by hand before trusting a "
+                 "number._")
 
     RESULTS.write_text("\n".join(lines), encoding="utf-8")
-    print(f"\n── Result: {hits}/{total} = {pct:.0f}% correct ──")
+    print(f"\n── Result: board {hits}/{total} = {pct:.0f}%  |  "
+          f"synthesis {synth_hits}/{total} = {synth_pct:.0f}%  |  "
+          f"top {top_hits}/{total} = {top_pct:.0f}% ──")
     print(f"Wrote {RESULTS.relative_to(ROOT)}")
 
 
