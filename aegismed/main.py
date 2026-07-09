@@ -14,12 +14,13 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import __version__, config, intake, knowledge, llm, orchestrator
+from . import __version__, cases, config, intake, knowledge, llm, orchestrator
 from .demo_data import EXAMPLE_CASE
 
 TAGS_METADATA = [
     {"name": "diagnosis", "description": "The core board: intake questions and the full diagnostic run."},
     {"name": "cases", "description": "Built-in and curated example cases for demos and testing."},
+    {"name": "team", "description": "Case history & team collaboration: save, retrieve, and comment on past cases."},
     {"name": "meta", "description": "Service metadata and health checks for integrators and orchestration."},
 ]
 
@@ -50,6 +51,18 @@ class PatientCase(BaseModel):
 class TeachingCase(PatientCase):
     # The student's or instructor's expected diagnosis to compare against the board.
     expected_diagnosis: str = Field(..., min_length=1, max_length=200)
+
+
+class SaveCaseRequest(PatientCase):
+    # Optional metadata for case storage.
+    submitted_by: str = Field(default="", max_length=100)
+    specialty: str = Field(default="", max_length=50)
+
+
+class CommentRequest(BaseModel):
+    # A team comment on an existing case.
+    author: str = Field(..., min_length=1, max_length=100)
+    text: str = Field(..., min_length=1, max_length=1000)
 
 
 @app.get("/", tags=["meta"], summary="Web UI", include_in_schema=False)
@@ -215,3 +228,95 @@ async def teaching_case(case: TeachingCase) -> dict:
         }
     except llm.LLMError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err
+
+
+@app.post(
+    "/api/cases/save",
+    tags=["team"],
+    summary="Save a case for later review",
+    description="Saves the result of a board run with optional metadata. Returns a case_id for later retrieval and team discussion.",
+)
+async def save_case_result(req: SaveCaseRequest) -> dict:
+    """Save a completed board result for case-conference follow-up or team review.
+
+    Runs the board on the provided case and saves the result with metadata
+    (who submitted it, what specialty). Returns a case_id for retrieval,
+    printing, or team comments.
+    """
+    try:
+        board_output = await orchestrator.diagnose(
+            age=req.age,
+            sex=req.sex,
+            symptoms=req.symptoms,
+            history=req.history,
+            labs=req.labs,
+            clarifications=req.clarifications,
+        )
+
+        case_id = cases.save_case(
+            board_output=board_output,
+            submitted_by=req.submitted_by,
+            specialty=req.specialty,
+        )
+
+        return {
+            "case_id": case_id,
+            "status": "saved",
+            "board_output": board_output,
+        }
+    except llm.LLMError as err:
+        raise HTTPException(status_code=502, detail=str(err)) from err
+
+
+@app.get(
+    "/api/cases/{case_id}",
+    tags=["team"],
+    summary="Retrieve a saved case",
+    description="Fetches the full case history including the original board output, metadata, and all team comments.",
+)
+async def get_case(case_id: str) -> dict:
+    """Retrieve a saved case by ID, including board output and all team comments.
+
+    Returns the case entry with board_output, metadata, and team_comments array.
+    """
+    case = cases.load_case(case_id)
+    if not case:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+    return case
+
+
+@app.get(
+    "/api/cases",
+    tags=["team"],
+    summary="List saved cases",
+    description="Fetches a summary list of saved cases, optionally filtered by specialty. Most recent first.",
+)
+async def list_cases_endpoint(specialty: str = "", limit: int = 50) -> list[dict]:
+    """List saved cases, optionally filtered by specialty (e.g. 'Cardiology').
+
+    Returns case summaries: case_id, timestamp, specialty, submitted_by, and
+    top_diagnosis. Full board output is retrieved via /api/cases/{case_id}.
+    """
+    return cases.list_cases(specialty=specialty, limit=limit)
+
+
+@app.post(
+    "/api/cases/{case_id}/comment",
+    tags=["team"],
+    summary="Add a team comment to a case",
+    description="Appends a timestamped comment from a team member to a case for case-conference discussion.",
+)
+async def add_comment(case_id: str, comment: CommentRequest) -> dict:
+    """Append a team comment to a saved case.
+
+    Each comment includes a timestamp, author name, and text.
+    Useful for case-conference follow-up, second-opinion notes, or outcome tracking.
+    """
+    success = cases.append_comment(
+        case_id=case_id,
+        author=comment.author,
+        text=comment.text,
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Case {case_id} not found.")
+    return {"status": "comment added", "case_id": case_id}

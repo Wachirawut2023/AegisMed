@@ -161,6 +161,13 @@
       </select>
     </div>
     <div class="status" id="status"></div>
+
+    <div style="margin-top:16px;">
+      <details class="card" style="padding:14px;">
+        <summary style="cursor:pointer;font-weight:600;">📋 Recent cases</summary>
+        <div id="recentCases" style="margin-top:12px;"></div>
+      </details>
+    </div>
   </div>
 
   <div id="intake" class="card hidden" style="border:2px solid var(--accent);">
@@ -181,7 +188,9 @@
 
     <div class="actions" style="margin-bottom:12px;">
       <button class="ghost" id="exportBtn">🖨️ Export / print board report</button>
+      <button class="ghost" id="saveBtn" style="display:none;">💾 Save case for team review</button>
     </div>
+    <div id="saveStatus" style="color:var(--muted);font-size:.9rem;margin-top:6px;"></div>
 
     <div class="card synthesis">
       <h2>🩺 Board conclusion</h2>
@@ -253,6 +262,71 @@ let demoCases = [];
     });
   } catch (e) { /* dropdown just stays with its single placeholder */ }
 })();
+
+// Load recent cases on page load
+(async () => {
+  try {
+    const res = await fetch("/api/cases");
+    const cases_list = await res.json();
+    if (!cases_list.length) {
+      $("recentCases").innerHTML = "<span style='color:var(--muted);'>No saved cases yet.</span>";
+      return;
+    }
+    $("recentCases").innerHTML = cases_list.slice(0, 5).map(c => `
+      <div style="padding:8px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;cursor:pointer;" onclick="loadCase('${escapeHtml(c.case_id)}')">
+        <strong>${escapeHtml(c.top_diagnosis)}</strong><br>
+        <span style="font-size:.8rem;color:var(--muted);">${escapeHtml(c.specialty)} · ${escapeHtml(c.submitted_by)}</span><br>
+        <span style="font-size:.75rem;color:var(--muted);">${new Date(c.timestamp).toLocaleString()}</span>
+        ${c.num_comments ? `<br><span style="font-size:.8rem;color:var(--accent);">💬 ${c.num_comments} comment${c.num_comments === 1 ? '' : 's'}</span>` : ''}
+      </div>
+    `).join("");
+  } catch (e) { /* recent cases just won't load */ }
+})();
+
+async function loadCase(caseId) {
+  try {
+    $("status").innerHTML = '<span class="spinner"></span>Loading case…';
+    const res = await fetch(`/api/cases/${caseId}`);
+    if (!res.ok) throw new Error("Case not found");
+    const caseData = await res.json();
+    const output = caseData.board_output;
+
+    // Display the full case result
+    $("demoBanner").classList.toggle("hidden", !output.demo_mode);
+    $("demoBanner").textContent = output.demo_banner || "";
+    $("synthesis").innerHTML = renderText(output.synthesis);
+    renderReferences(output.references || []);
+    renderGuidelines(output.guideline_references || []);
+    renderEvidence(output.evidence || {});
+    renderRouting(output.routing || null);
+    renderComparison(output.match_summary || null);
+    renderPrintHeader(output, {});
+    $("specialists").innerHTML = output.specialist_opinions.map(s =>
+      `<div class="spec-card"><h3>${escapeHtml(s.specialty)}</h3><div class="opinion">${renderText(s.opinion)}</div></div>`
+    ).join("");
+
+    // Show comments if any
+    if (caseData.team_comments && caseData.team_comments.length) {
+      const commentsHtml = `
+        <div class="card" style="background:var(--accent-soft);border:1px solid var(--accent);">
+          <h3 style="margin-top:0;color:var(--accent);">💬 Team comments (${caseData.team_comments.length})</h3>
+          ${caseData.team_comments.map(comment => `
+            <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--border);">
+              <strong>${escapeHtml(comment.author)}</strong> · <span style="font-size:.85rem;color:var(--muted);">${new Date(comment.timestamp).toLocaleString()}</span><br>
+              <span style="font-size:.9rem;">${escapeHtml(comment.text)}</span>
+            </div>
+          `).join("")}
+        </div>`;
+      const synthesis = $("synthesis").parentElement;
+      synthesis.insertAdjacentHTML('afterend', commentsHtml);
+    }
+
+    $("results").classList.remove("hidden");
+    $("status").textContent = "Case loaded from case history";
+  } catch (e) {
+    $("status").innerHTML = '<span class="error">' + e.message + "</span>";
+  }
+}
 
 $("examplePicker").addEventListener("change", (e) => {
   const c = demoCases[Number(e.target.value)];
@@ -438,6 +512,39 @@ window.addEventListener("afterprint", () => {
 
 $("exportBtn").addEventListener("click", () => window.print());
 
+let currentBoardOutput = null;
+
+$("saveBtn").addEventListener("click", async () => {
+  if (!currentBoardOutput) return;
+  const specialty = prompt("Specialty (optional, e.g. Cardiology):", "");
+  const submittedBy = prompt("Your name/title (optional, e.g. Dr. Smith):", "");
+  if (specialty === null && submittedBy === null) return;
+
+  $("saveStatus").innerHTML = '<span class="spinner"></span>Saving case…';
+  $("saveBtn").disabled = true;
+
+  try {
+    const res = await fetch("/api/cases/save", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...readCase(),
+        specialty: specialty || "",
+        submitted_by: submittedBy || "",
+      }),
+    });
+    if (!res.ok) throw new Error("Failed to save case");
+    const data = await res.json();
+    $("saveStatus").innerHTML = `✓ Case saved with ID: <code>${escapeHtml(data.case_id)}</code>. Share this ID with your team.`;
+    // Reload recent cases
+    location.reload();
+  } catch (e) {
+    $("saveStatus").innerHTML = '<span class="error">' + e.message + "</span>";
+  } finally {
+    $("saveBtn").disabled = false;
+  }
+});
+
 function renderRouting(r) {
   const el = $("routingNote");
   if (!r) { el.textContent = ""; return; }
@@ -522,6 +629,8 @@ async function runDiagnosis(clarifications) {
     }
     const data = await res.json();
 
+    currentBoardOutput = data;
+    $("saveBtn").style.display = "inline-block";
     $("demoBanner").classList.toggle("hidden", !data.demo_mode);
     $("demoBanner").textContent = data.demo_banner || "";
     $("synthesis").innerHTML = renderText(data.synthesis);
@@ -537,6 +646,7 @@ async function runDiagnosis(clarifications) {
 
     $("results").classList.remove("hidden");
     $("status").textContent = "";
+    $("saveStatus").textContent = "";
   } catch (e) {
     $("status").innerHTML = '<span class="error">' + e.message + "</span>";
   } finally {
