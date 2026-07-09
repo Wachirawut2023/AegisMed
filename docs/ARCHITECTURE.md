@@ -110,12 +110,18 @@ The rest of the app — server, UI, JSON shapes — behaves identically. This le
 
 ## Where AMD fits (judging criterion #4)
 
-- **Fireworks AI serves Gemma on AMD hardware** → every AI call in AegisMed
-  already runs on AMD.
-- **AMD Developer Cloud** hosts the app itself for the public demo URL.
-- Stretch goal (optional, post-foundation): run Gemma directly on an AMD GPU
-  with **ROCm + vLLM** on AMD Developer Cloud and point `MODEL`/the API URL at
-  it — a strong "meaningful use of AMD platforms" story.
+- **Fireworks AI serves Gemma on AMD hardware** (AMD Instinct MI300X GPUs) →
+  every AI call in AegisMed already runs on AMD by default, no setup needed.
+- **AMD Developer Cloud** hosts the app itself for the public demo URL — see
+  `deploy/amd-cloud.sh` and `docs/DEPLOY_AMD.md`.
+- **Self-hosted Gemma on AMD Developer Cloud is implemented**, not just a
+  stretch goal: `aegismed/config.py` and `aegismed/llm.py` read an
+  OpenAI-compatible `LLM_BASE_URL` env var. Point it at Gemma served by
+  **ROCm + vLLM** (or Ollama) on an AMD Developer Cloud GPU instance, and every
+  specialist + synthesis call runs on GPU hardware you provisioned yourself —
+  no third-party inference service in the loop. Full walkthrough:
+  `docs/DEPLOY_AMD.md`. `GET /health` reports the active `endpoint` so you can
+  verify which path is live at a glance.
 
 ## Ideas for upgrades during hackathon week
 

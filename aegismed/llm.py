@@ -15,11 +15,23 @@ class LLMError(Exception):
     """Raised when the AI service cannot be reached or returns an error."""
 
 
+# Short calls (triage/intake/records lookup) return small JSON or Q&A text, so a
+# tight token cap keeps them fast without hurting quality. The reasoning agents
+# (specialists, synthesis) get the full budget for a complete answer.
+_SHORT_CALL_AGENTS = {"retrieval", "intake", "auto_answer"}
+_SHORT_MAX_TOKENS = 512
+_FULL_MAX_TOKENS = 1024
+
+
 async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> str:
     """Send one question to the model and return its answer as plain text.
 
     In demo mode this returns pre-written sample output instead (zero cost,
     no API key needed) so the whole app can be tried and demonstrated offline.
+
+    Talks to any OpenAI-compatible chat endpoint (config.chat_completions_url()):
+    Fireworks AI by default (Gemma on AMD Instinct MI300X), or a self-hosted Gemma
+    on an AMD Developer Cloud GPU via LLM_BASE_URL. See docs/DEPLOY_AMD.md.
     """
     if config.demo_mode():
         if agent_name == "intake":
@@ -31,6 +43,7 @@ async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> st
             "Demo mode: no sample answer available for this agent.",
         )
 
+    max_tokens = _SHORT_MAX_TOKENS if agent_name in _SHORT_CALL_AGENTS else _FULL_MAX_TOKENS
     payload = {
         "model": config.MODEL,
         "messages": [
@@ -38,25 +51,28 @@ async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> st
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0.4,   # low = more focused, less "creative" — right for medicine
-        "max_tokens": 1024,
+        "max_tokens": max_tokens,
     }
-    headers = {
-        "Authorization": f"Bearer {config.FIREWORKS_API_KEY}",
-        "Content-Type": "application/json",
-    }
+    headers = {"Content-Type": "application/json"}
+    # Send the bearer token only when we have one. A self-hosted vLLM/Ollama server
+    # on AMD Developer Cloud typically needs no key, while Fireworks requires it.
+    if config.FIREWORKS_API_KEY:
+        headers["Authorization"] = f"Bearer {config.FIREWORKS_API_KEY}"
 
+    # Tight timeouts so no single call can blow the request's sub-30s budget.
+    timeout = httpx.Timeout(config.llm_read_timeout(), connect=5.0)
     try:
-        async with httpx.AsyncClient(timeout=120) as client:
+        async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
-                config.FIREWORKS_API_URL, json=payload, headers=headers
+                config.chat_completions_url(), json=payload, headers=headers
             )
             response.raise_for_status()
             data = response.json()
             return data["choices"][0]["message"]["content"].strip()
     except httpx.HTTPStatusError as err:
         raise LLMError(
-            f"Fireworks AI returned an error ({err.response.status_code}). "
-            "Check your FIREWORKS_API_KEY and MODEL in the .env file."
+            f"The model endpoint returned an error ({err.response.status_code}). "
+            "Check your FIREWORKS_API_KEY / LLM_BASE_URL and MODEL in the .env file."
         ) from err
     except httpx.HTTPError as err:
-        raise LLMError(f"Could not reach Fireworks AI: {err}") from err
+        raise LLMError(f"Could not reach the model endpoint: {err}") from err

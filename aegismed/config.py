@@ -19,7 +19,52 @@ FIREWORKS_API_KEY: str = os.getenv("FIREWORKS_API_KEY", "").strip()
 # Swap via the MODEL variable in .env once launch-day models are confirmed.
 MODEL: str = os.getenv("MODEL", "accounts/fireworks/models/gemma-3-27b-it").strip()
 
+# The default managed endpoint: Fireworks AI, which serves Gemma on AMD Instinct
+# MI300X GPUs — so out of the box every inference call already runs on AMD silicon.
 FIREWORKS_API_URL: str = "https://api.fireworks.ai/inference/v1/chat/completions"
+
+# OpenAI-compatible base URL for the chat model. Defaults to Fireworks. Set this
+# to point AegisMed at ANY OpenAI-compatible server — e.g. Gemma self-hosted on an
+# AMD Developer Cloud GPU instance via vLLM or Ollama (see docs/DEPLOY_AMD.md):
+#     LLM_BASE_URL=http://<your-amd-instance>:8000/v1
+# The value may include or omit a trailing "/chat/completions"; we normalize both.
+LLM_BASE_URL: str = os.getenv("LLM_BASE_URL", "").strip()
+
+
+def chat_completions_url() -> str:
+    """The full chat-completions URL to POST to.
+
+    Uses LLM_BASE_URL when set (self-hosted / AMD Developer Cloud path), otherwise
+    the default Fireworks endpoint. Accepts a base URL with or without the
+    "/chat/completions" suffix and with or without a trailing slash.
+    """
+    base = LLM_BASE_URL or FIREWORKS_API_URL
+    base = base.rstrip("/")
+    if base.endswith("/chat/completions"):
+        return base
+    return base + "/chat/completions"
+
+
+def _int_env(name: str, default: int, minimum: int = 1) -> int:
+    """Read an integer env var, falling back to `default` on missing/invalid."""
+    try:
+        return max(minimum, int(os.getenv(name, str(default)).strip()))
+    except (ValueError, AttributeError):
+        return default
+
+
+# Read timeout for a single model call (seconds). Kept tight so no one upstream
+# call can dominate the request budget. The board's critical path is 3 sequential
+# calls, so this must stay well under REQUEST_TIMEOUT_SECONDS.
+def llm_read_timeout() -> int:
+    return _int_env("LLM_READ_TIMEOUT_SECONDS", 12)
+
+
+# Overall wall-clock budget for one /api/diagnose (and teaching) request. The
+# hackathon requires responses under 30s; we default to 28s and abort cleanly
+# rather than silently exceed it.
+def request_timeout() -> int:
+    return _int_env("REQUEST_TIMEOUT_SECONDS", 28)
 
 
 def demo_mode() -> bool:

@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AegisMed — AMD Developer Hackathon: ACT II</title>
+<style>
+  @page { size: 1280px 720px; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: #0b1220;
+    color: #eef2f9;
+  }
+  .slide {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    overflow: hidden;
+    page-break-after: always;
+    padding: 64px 84px;
+    background:
+      radial-gradient(1100px 500px at 85% -10%, rgba(45,212,191,0.16), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(59,130,246,0.14), transparent 60%),
+      #0b1220;
+    display: flex;
+    flex-direction: column;
+  }
+  .slide:last-child { page-break-after: auto; }
+
+  .eyebrow {
+    font-size: 15px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #5eead4;
+    font-weight: 700;
+    margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 46px;
+    line-height: 1.15;
+    margin: 0 0 18px 0;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+  }
+  h2 { font-size: 30px; margin: 0 0 22px 0; font-weight: 700; color: #ffffff; }
+  p.lead { font-size: 21px; line-height: 1.5; color: #c7d2e3; max-width: 980px; }
+  .footer {
+    position: absolute; left: 84px; right: 84px; bottom: 32px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: #64748b;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding-top: 14px;
+  }
+  .badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(94,234,212,0.1); color: #5eead4;
+    border: 1px solid rgba(94,234,212,0.35);
+    padding: 6px 14px; border-radius: 999px;
+    font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
+  }
+  .shield { font-size: 40px; line-height: 1; }
+  .grid { display: grid; gap: 20px; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .grid-4 { grid-template-columns: repeat(4, 1fr); }
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 22px 24px;
+  }
+  .card .num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 30px; border-radius: 8px;
+    background: rgba(94,234,212,0.15); color: #5eead4;
+    font-weight: 800; font-size: 15px; margin-bottom: 12px;
+  }
+  .card h3 { margin: 0 0 8px 0; font-size: 18px; color: #fff; }
+  .card p { margin: 0; font-size: 15px; line-height: 1.5; color: #aab6c9; }
+  .stat { font-size: 52px; font-weight: 800; color: #5eead4; line-height: 1; }
+  .stat-label { font-size: 15px; color: #94a3b8; margin-top: 8px; }
+  ul.check { list-style: none; margin: 0; padding: 0; }
+  ul.check li {
+    font-size: 17px; color: #dbe4f3; padding: 9px 0 9px 30px; position: relative;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+  ul.check li:last-child { border-bottom: none; }
+  ul.check li::before { content: "✓"; position: absolute; left: 0; color: #5eead4; font-weight: 800; }
+  ul.dash { list-style: none; margin: 0; padding: 0; }
+  ul.dash li {
+    font-size: 16px; color: #c7d2e3; padding: 7px 0 7px 22px; position: relative;
+  }
+  ul.dash li::before { content: "—"; position: absolute; left: 0; color: #64748b; }
+  .pill-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+  .pill {
+    background: rgba(59,130,246,0.14); border: 1px solid rgba(59,130,246,0.35);
+    color: #93c5fd; padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 600;
+  }
+  .flow { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex: 1; }
+  .flow-step {
+    flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px; padding: 18px 16px; text-align: center;
+  }
+  .flow-step .icon { font-size: 26px; margin-bottom: 8px; }
+  .flow-step .title { font-size: 14px; font-weight: 700; color: #fff; }
+  .flow-step .sub { font-size: 12px; color: #94a3b8; margin-top: 4px; }
+  .arrow { font-size: 22px; color: #5eead4; flex-shrink: 0; }
+  .specialists { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  .spec { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 14px; text-align: center; }
+  .spec .icon { font-size: 24px; }
+  .spec .name { font-size: 13px; color: #dbe4f3; margin-top: 6px; font-weight: 600; }
+  .two-col { display: flex; gap: 40px; flex: 1; align-items: stretch; }
+  .col { flex: 1; }
+  table.gaps { width: 100%; border-collapse: collapse; font-size: 14px; }
+  table.gaps th { text-align: left; color: #5eead4; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; padding: 0 12px 10px 0; border-bottom: 1px solid rgba(255,255,255,0.15); }
+  table.gaps td { padding: 10px 12px 10px 0; border-bottom: 1px solid rgba(255,255,255,0.06); color: #c7d2e3; vertical-align: top; }
+  .verdict {
+    margin-top: 16px; background: rgba(94,234,212,0.08); border: 1px solid rgba(94,234,212,0.3);
+    border-radius: 12px; padding: 18px 22px; font-size: 15px; color: #d7f7f0; line-height: 1.5;
+  }
+  .cta-links { display: flex; gap: 16px; margin-top: 28px; flex-wrap: wrap; }
+  .cta-link {
+    background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px; padding: 16px 22px; font-size: 15px; color: #dbe4f3; min-width: 260px;
+  }
+  .cta-link .label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: #5eead4; margin-bottom: 6px; }
+  .disclaimer { font-size: 12px; color: #64748b; line-height: 1.5; margin-top: auto; }
+  .center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; flex: 1; }
+</style>
+</head>
+<body>
+
+<!-- 1. TITLE -->
+<section class="slide center">
+  <div class="shield">🛡</div>
+  <div class="eyebrow" style="margin-top:18px;">AMD Developer Hackathon: ACT II — Track 3, Unicorn</div>
+  <h1 style="font-size:64px; text-align:center;">AegisMed</h1>
+  <p class="lead" style="text-align:center;">A virtual board of AI specialist physicians that helps doctors get<br>second opinions on complex and undifferentiated cases.</p>
+  <div class="pill-row" style="justify-content:center; margin-top:26px;">
+    <span class="pill">Google Gemma</span>
+    <span class="pill">AMD Instinct MI300X</span>
+    <span class="pill">Fireworks AI</span>
+    <span class="pill">AMD Developer Cloud</span>
+  </div>
+  <div class="footer" style="position:absolute;">
+    <span>AegisMed — clinical decision-support prototype. Not medical advice.</span>
+    <span>github.com/wachirawut2023/AegisMed</span>
+  </div>
+</section>
+
+<!-- 2. PROBLEM -->
+<section class="slide">
+  <div class="eyebrow">The problem</div>
+  <h1>Patients wait 5–7 years for a<br>correct rare-disease diagnosis</h1>
+  <p class="lead">Diagnostic reasoning is distributed across specialties. No single physician can hold
+  all the knowledge needed to confidently work up a complex case — the value of a multidisciplinary
+  case conference applies to any undifferentiated presentation, not only rare disease.</p>
+  <div class="grid grid-3" style="margin-top:36px;">
+    <div class="card"><div class="stat">5–7</div><div class="stat-label">years, average time to a correct rare-disease diagnosis</div></div>
+    <div class="card"><div class="stat">7+</div><div class="stat-label">specialties often needed to see the full picture of one case</div></div>
+    <div class="card"><div class="stat">1</div><div class="stat-label">physician, in practice, holding the case at any given moment</div></div>
+  </div>
+  <div class="footer"><span>AegisMed</span><span>02 / 11</span></div>
+</section>
+
+<!-- 3. IDEA -->
+<section class="slide">
+  <div class="eyebrow">The idea</div>
+  <h1>Recreate the multidisciplinary case<br>conference — convened in 60 seconds</h1>
+  <p class="lead">The gold-standard way hospitals actually solve hard cases is a structured review by
+  specialists across domains. AegisMed rebuilds that as software: seven AI specialist agents instead
+  of seven busy humans, available on demand.</p>
+  <div class="grid grid-2" style="margin-top:30px; flex:1;">
+    <div class="card">
+      <div class="num">1</div>
+      <h3>Independent opinions</h3>
+      <p>Each specialist reasons separately — real second opinions can't anchor on each other's first guess.</p>
+    </div>
+    <div class="card">
+      <div class="num">2</div>
+      <h3>Grounded in real evidence</h3>
+      <p>Citations are attached from a knowledge base, never recalled from the model's memory.</p>
+    </div>
+    <div class="card">
+      <div class="num">3</div>
+      <h3>Token-efficient by design</h3>
+      <p>Smart routing convenes only the 3–4 specialists a case actually needs, not all 7 every time.</p>
+    </div>
+    <div class="card">
+      <div class="num">4</div>
+      <h3>Decision support, not autonomy</h3>
+      <p>Every output must be verified by a licensed physician — the disclaimer is enforced throughout.</p>
+    </div>
+  </div>
+  <div class="footer"><span>AegisMed</span><span>03 / 11</span></div>
+</section>
+
+<!-- 4. HOW IT WORKS -->
+<section class="slide">
+  <div class="eyebrow">How it works</div>
+  <h1>One case, six clinical steps</h1>
+  <div class="flow" style="margin-top:26px;">
+    <div class="flow-step"><div class="icon">👩‍⚕️</div><div class="title">Enter case</div><div class="sub">symptoms, history, labs</div></div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><div class="icon">🧐</div><div class="title">Intake agent</div><div class="sub">asks for missing details</div></div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><div class="icon">🔎</div><div class="title">Retrieval &amp; routing</div><div class="sub">evidence + who's relevant</div></div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><div class="icon">🩺</div><div class="title">Specialists</div><div class="sub">parallel, independent</div></div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><div class="icon">🧭</div><div class="title">Synthesis</div><div class="sub">board chair merges</div></div>
+    <div class="arrow">→</div>
+    <div class="flow-step"><div class="icon">📋</div><div class="title">Report</div><div class="sub">ranked + cited + savable</div></div>
+  </div>
+  <p class="lead" style="margin-top:34px;">Output: a ranked differential diagnosis with rare-disease flags, points of
+  agreement/disagreement, the single most valuable next test, immediate safety actions, and a do-not-miss warning —
+  all within a bounded ~28-second response budget.</p>
+  <div class="footer"><span>AegisMed</span><span>04 / 11</span></div>
+</section>
+
+<!-- 5. AGENT PIPELINE -->
+<section class="slide">
+  <div class="eyebrow">Agent pipeline</div>
+  <h1>Seven specialists, one board chair</h1>
+  <div class="specialists" style="margin-top:10px;">
+    <div class="spec"><div class="icon">🫀</div><div class="name">Cardiology</div></div>
+    <div class="spec"><div class="icon">🧠</div><div class="name">Neurology</div></div>
+    <div class="spec"><div class="icon">🧬</div><div class="name">Medical Genetics</div></div>
+    <div class="spec"><div class="icon">🦠</div><div class="name">Immunology &amp; Rheumatology</div></div>
+    <div class="spec"><div class="icon">🌡</div><div class="name">Infectious Disease</div></div>
+    <div class="spec"><div class="icon">⚗️</div><div class="name">Endocrinology &amp; Metabolism</div></div>
+    <div class="spec"><div class="icon">🩸</div><div class="name">Hematology-Oncology</div></div>
+    <div class="spec" style="background:rgba(94,234,212,0.1); border-color:rgba(94,234,212,0.35);"><div class="icon">🩺</div><div class="name">Board Chair (Synthesis)</div></div>
+  </div>
+  <p class="lead" style="margin-top:26px;">Each "agent" is the same Gemma model given a different system-prompt
+  role — one model, seven personas, running <strong>in parallel</strong> via <code>asyncio.gather</code>, so seven
+  opinions take the time of one. Any specialist may say "nothing in my domain" rather than invent a diagnosis —
+  a confident non-answer is treated as genuinely useful.</p>
+  <div class="footer"><span>AegisMed</span><span>05 / 11</span></div>
+</section>
+
+<!-- 6. AMD STACK -->
+<section class="slide">
+  <div class="eyebrow">AMD platform usage — judging criterion #4</div>
+  <h1>Every inference call runs on AMD</h1>
+  <div class="grid grid-2" style="margin-top:20px; flex:1;">
+    <div class="card">
+      <span class="badge">Path A — Default</span>
+      <h3 style="margin-top:16px;">Managed inference on AMD Instinct</h3>
+      <p>Fireworks AI serves Google Gemma on <strong>AMD Instinct MI300X</strong> GPUs. Zero setup —
+      every specialist and synthesis call already runs on AMD hardware the moment a Fireworks key is set.</p>
+    </div>
+    <div class="card">
+      <span class="badge">Path B — Self-hosted</span>
+      <h3 style="margin-top:16px;">Gemma on your own AMD Developer Cloud GPU</h3>
+      <p>Set <code>LLM_BASE_URL</code> to point AegisMed at Gemma served by vLLM/Ollama on an
+      <strong>AMD Developer Cloud</strong> GPU instance you provision — app and model both run on
+      AMD infrastructure, no third-party inference service in the loop.</p>
+    </div>
+  </div>
+  <div class="card" style="margin-top:4px;">
+    <h3>Also on AMD Developer Cloud</h3>
+    <p>The AegisMed app itself is deployed with <code>deploy/amd-cloud.sh</code> — a one-command script
+    that builds and runs the Docker image on an AMD Developer Cloud instance, giving judges a live,
+    publicly reachable demo URL. <code>GET /health</code> reports the active endpoint so the AMD path
+    in use is verifiable at a glance.</p>
+  </div>
+  <div class="footer"><span>AegisMed</span><span>06 / 11</span></div>
+</section>
+
+<!-- 7. EVIDENCE GROUNDING -->
+<section class="slide">
+  <div class="eyebrow">Anti-hallucination</div>
+  <h1>The AI is never the source of a citation</h1>
+  <p class="lead">Asking an LLM to "cite sources" produces confident, plausible, and often completely
+  fabricated references — in medicine a fabricated citation is worse than none. AegisMed follows one rule
+  throughout the codebase: citations are always attached deterministically, never recalled from the model.</p>
+  <div class="grid grid-3" style="margin-top:30px;">
+    <div class="card"><h3>Verified references</h3><p>Orphanet, OMIM, PubMed, and GARD links resolved from a ~10,700-disease knowledge base — real URLs, every time.</p></div>
+    <div class="card"><h3>Guideline search links</h3><p>Live, query-filtered links to PubMed, Cochrane, NICE, TRIP, MedlinePlus, NCBI Bookshelf, and Guideline Central — reordered per practice region (US/UK/EU).</p></div>
+    <div class="card"><h3>Evidence-first retrieval</h3><p>A retrieval agent proposes what to look up before diagnosing; the specialists cite those verified leads by name, never inventing papers or PMIDs.</p></div>
+  </div>
+  <div class="footer"><span>AegisMed</span><span>07 / 11</span></div>
+</section>
+
+<!-- 8. EVALUATION -->
+<section class="slide">
+  <div class="eyebrow">Evaluation approach</div>
+  <h1>Scored against real, public rare-disease cases</h1>
+  <p class="lead">AegisMed is evaluated on held-out cases from <strong>RareBench</strong> and
+  <strong>CUPCase</strong> (both Apache-2.0), mixing coded symptom lists and narrative doctor write-ups —
+  not synthetic or hand-picked examples.</p>
+  <div class="two-col" style="margin-top:28px;">
+    <div class="col card">
+      <h3>The two-step harness</h3>
+      <ul class="dash">
+        <li><code>python data/build_dataset.py</code> — downloads &amp; converts public cases (free, no key)</li>
+        <li><code>python eval/run_eval.py</code> — runs the full board on each case, checks whether the known diagnosis (or a synonym) appears in the output</li>
+        <li>Mirrors the real app flow: intake questions are auto-answered from the case, then the board runs</li>
+      </ul>
+    </div>
+    <div class="col card">
+      <h3>The headline metric</h3>
+      <p style="font-size:17px; color:#dbe4f3;">"The correct diagnosis was surfaced in <strong style="color:#5eead4;">X%</strong> of held-out cases" — written to <code>eval/results.md</code>, broken down per data source.</p>
+      <p style="margin-top:14px;">Requires a real <code>FIREWORKS_API_KEY</code> to be meaningful — demo mode returns fixed sample output, so the harness warns explicitly when scores wouldn't be real.</p>
+    </div>
+  </div>
+  <div class="footer"><span>AegisMed</span><span>08 / 11</span></div>
+</section>
+
+<!-- 9. MARKET & ROADMAP -->
+<section class="slide">
+  <div class="eyebrow">Market &amp; roadmap</div>
+  <h1>From solo clinician to regulated deployment</h1>
+  <div class="two-col" style="margin-top:20px;">
+    <div class="col">
+      <h3 style="color:#5eead4; font-size:16px; margin-bottom:12px;">Who it's for today</h3>
+      <ul class="check">
+        <li>Solo clinicians — free second opinions on hard cases</li>
+        <li>Medical schools — teaching mode grades vs. board</li>
+        <li>Hospitals — case history &amp; team collaboration (B2B)</li>
+        <li>Telehealth platforms — API integration mid-consult</li>
+      </ul>
+    </div>
+    <div class="col">
+      <h3 style="color:#5eead4; font-size:16px; margin-bottom:12px;">What's next (docs/ROADMAP.md)</h3>
+      <ul class="check">
+        <li>Geographic expansion — region-aware guidelines (in progress)</li>
+        <li>FHIR/EHR read integration for auto-populated cases</li>
+        <li>FDA 510(k) / SaMD regulatory pathway</li>
+        <li>Outcome tracking &amp; specialist-prompt feedback loop</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer"><span>AegisMed</span><span>09 / 11</span></div>
+</section>
+
+<!-- 10. PROTOTYPE VS PRODUCTION -->
+<section class="slide">
+  <div class="eyebrow">Honest assessment</div>
+  <h1>Strong prototype today — a clear path to production</h1>
+  <table class="gaps" style="margin-top:14px;">
+    <tr><th>Works today</th><th>Production gap</th><th>What closes it</th></tr>
+    <tr><td>One-command Docker, demo &amp; real-AI modes, 48 passing tests</td><td>File-based case store</td><td>Postgres with migrations &amp; pooling</td></tr>
+    <tr><td>Bounded ≤28s response time, clean timeout handling</td><td>No auth / access control</td><td>OAuth2/SSO, per-case permissions, audit trail</td></tr>
+    <tr><td>Verified, never-invented citations throughout</td><td>No PHI/HIPAA compliance</td><td>Encryption at rest/in transit, signed BAAs</td></tr>
+    <tr><td>Graceful fallback if any data file is missing</td><td>No regulatory clearance</td><td>FDA 510(k) / SaMD pathway (Phase 4a)</td></tr>
+  </table>
+  <div class="verdict">Verdict: AegisMed demonstrates the multi-agent board concept end-to-end with real
+  fundamentals — not yet deployable for real patient care, and every gap above is documented with what
+  closing it would take. See <strong>docs/PRODUCTION_READINESS.md</strong> for the full analysis.</div>
+  <div class="footer"><span>AegisMed</span><span>10 / 11</span></div>
+</section>
+
+<!-- 11. CTA -->
+<section class="slide">
+  <div class="eyebrow">Try it</div>
+  <h1>See the board convene</h1>
+  <p class="lead">Zero-cost demo mode, real AI with a Fireworks or self-hosted-on-AMD key, or read
+  the code — everything is public and documented.</p>
+  <div class="cta-links">
+    <div class="cta-link"><div class="label">GitHub</div>github.com/wachirawut2023/AegisMed</div>
+    <div class="cta-link"><div class="label">Live demo</div>deployed via deploy/amd-cloud.sh on AMD Developer Cloud <!-- DEMO_URL --></div>
+    <div class="cta-link"><div class="label">Quickstart</div><code>docker compose up --build</code> → localhost:8000</div>
+    <div class="cta-link"><div class="label">Full walkthrough</div>docs/PROJECT_SUMMARY.md</div>
+  </div>
+  <div class="disclaimer">AegisMed is a clinical decision-support prototype for licensed physicians.
+  It does not provide medical advice, diagnosis, or treatment. All output must be verified by a
+  qualified clinician. Built for the AMD Developer Hackathon: ACT II, Track 3 (Unicorn).</div>
+  <div class="footer"><span>AegisMed</span><span>11 / 11</span></div>
+</section>
+
+</body>
+</html>

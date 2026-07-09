@@ -7,6 +7,7 @@ Routes:
   POST /api/teaching/case  for teaching mode: runs board + compares to expected diagnosis
 """
 
+import asyncio
 import json
 from pathlib import Path
 
@@ -36,6 +37,26 @@ app = FastAPI(
 )
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+async def _run_board(**case_fields) -> dict:
+    """Run the board under the overall request deadline (sub-30s guarantee).
+
+    Aborts cleanly with a 504 if the wall-clock budget is exceeded, rather than
+    letting a slow upstream model call push the response past the 30s limit.
+    """
+    try:
+        return await asyncio.wait_for(
+            orchestrator.diagnose(**case_fields), timeout=config.request_timeout()
+        )
+    except asyncio.TimeoutError as err:
+        raise HTTPException(
+            status_code=504,
+            detail=(
+                f"The board did not finish within {config.request_timeout()}s. "
+                "Try again, reduce case length, or raise REQUEST_TIMEOUT_SECONDS."
+            ),
+        ) from err
 
 
 class PatientCase(BaseModel):
@@ -91,6 +112,8 @@ async def health() -> dict:
         "version": __version__,
         "demo_mode": config.demo_mode(),
         "model": config.MODEL,
+        "endpoint": config.chat_completions_url(),
+        "request_timeout_seconds": config.request_timeout(),
         "knowledge_base_diseases": knowledge.kb_size(),
     }
 
@@ -172,7 +195,7 @@ async def intake_questions(case: PatientCase) -> dict:
 )
 async def diagnose(case: PatientCase) -> dict:
     try:
-        return await orchestrator.diagnose(
+        return await _run_board(
             age=case.age,
             sex=case.sex,
             symptoms=case.symptoms,
@@ -199,7 +222,7 @@ async def teaching_case(case: TeachingCase) -> dict:
     Useful for medical school case-conference simulations.
     """
     try:
-        board_output = await orchestrator.diagnose(
+        board_output = await _run_board(
             age=case.age,
             sex=case.sex,
             symptoms=case.symptoms,
@@ -256,7 +279,7 @@ async def save_case_result(req: SaveCaseRequest) -> dict:
     specialty). Returns a case_id for retrieval, printing, or team comments.
     """
     try:
-        board_output = req.board_output or await orchestrator.diagnose(
+        board_output = req.board_output or await _run_board(
             age=req.age,
             sex=req.sex,
             symptoms=req.symptoms,
