@@ -2,18 +2,48 @@
 
 Compare multiple models' performance on the same 75 rare-disease cases.
 
-## Quick start
+## Why a deployment is needed first
+
+The base model `gemma-3-27b-it` is **not** served on Fireworks' free serverless
+tier (`supportsServerless: false`), and a fine-tuned LoRA adapter is never
+serverless on its own. If you call either directly you get `404 Model not
+found`. So A/B testing runs against a **dedicated on-demand deployment**: one
+GPU hosts the base weights and loads your LoRA adapter onto the *same* card
+("Multi-LoRA"), which is also the fairest possible comparison — identical
+hardware for both models.
+
+`finetune/deploy.py` manages that GPU:
 
 ```bash
-# Compare tuned Gemma 3 vs base Gemma 4 (full eval, ~20 minutes)
-python eval/compare_models.py
-
-# Quick test on 10 cases each (2 minutes)
-python eval/compare_models.py --limit 10
-
-# Test just base Gemma 3 vs tuned Gemma 3 (to isolate tuning effect)
-python eval/compare_models.py --models gemma3_base,gemma3_tuned
+python finetune/deploy.py up      # rent an H100, load base + LoRA, write eval/ab_models.json
+python finetune/deploy.py status  # is a GPU currently running (i.e. costing credit)?
+python finetune/deploy.py down     # release the GPU — STOPS the credit meter
 ```
+
+`up` writes `eval/ab_models.json` with the exact deployment-qualified model ids;
+`compare_models.py` picks that file up automatically and targets the live GPU.
+
+## Quick start (recommended)
+
+`run_ab_test.sh` does the whole lifecycle — provision, validate on 15 cases,
+run the full 75, then tear the GPU down (even on error or Ctrl-C):
+
+```bash
+bash eval/run_ab_test.sh
+```
+
+## Manual runs
+
+```bash
+python finetune/deploy.py up                                      # provision first
+python eval/compare_models.py --models gemma3_base,gemma3_tuned   # full eval (~20 min)
+python eval/compare_models.py --models gemma3_base,gemma3_tuned --limit 10  # quick
+python finetune/deploy.py down                                     # ALWAYS release the GPU
+```
+
+> ⚠ The deployment bills credit for as long as it is up. It auto-scales to zero
+> after ~5 minutes idle, but if a run is interrupted before teardown, run
+> `python finetune/deploy.py down` (or `status` to check) so you stop paying.
 
 ## Output
 
@@ -59,9 +89,13 @@ MODELS_TO_TEST = {
 
 ## Cost
 
-Each full eval on all 75 cases calls the model ~250 times (75 cases × 3-4 agents + intake + synthesis). At Fireworks pricing, one full model test costs ~$0.50–$1.00.
+A/B testing is billed by **GPU time**, not per token, because it runs on a
+dedicated deployment. One H100 80GB, single replica, is up for as long as the
+deployment lives. The full base-vs-tuned A/B (both models × 75 cases, ~4 model
+calls each) takes roughly 20–40 minutes of active GPU time.
 
-Running both models: ~$1–$2 total.
+Keep the bill down by always running `python finetune/deploy.py down` when you
+finish — `run_ab_test.sh` does this for you automatically.
 
 ## Rate limiting
 

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -41,6 +42,22 @@ MODELS_TO_TEST = {
     "gemma4_base": "accounts/fireworks/models/gemma-4-31b-it",
     "gemma3_base": "accounts/fireworks/models/gemma-3-27b-it",
 }
+
+# Neither the base model nor the tuned LoRA is served on Fireworks' serverless
+# tier, so A/B testing runs against a dedicated on-demand deployment created by
+# finetune/deploy.py. That script writes the exact deployment-qualified model ids
+# here; load them so we hit the live GPU instead of the (404-ing) serverless names.
+_AB_MODELS_FILE = ROOT / "eval" / "ab_models.json"
+if _AB_MODELS_FILE.exists():
+    try:
+        _resolved = json.loads(_AB_MODELS_FILE.read_text(encoding="utf-8"))
+        for _key, _model_id in _resolved.items():
+            if _key.startswith("_") or not isinstance(_model_id, str):
+                continue  # skip metadata like "_deployment"
+            MODELS_TO_TEST[_key] = _model_id
+        print(f"Using deployment ids from {_AB_MODELS_FILE.relative_to(ROOT)}")
+    except (json.JSONDecodeError, OSError) as _err:
+        print(f"Warning: could not read {_AB_MODELS_FILE.name} ({_err}); using default model ids")
 
 
 def run_eval_for_model(model_name: str, model_id: str, limit: int | None, delay: float) -> Path:
