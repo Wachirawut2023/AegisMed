@@ -79,10 +79,11 @@ def _client() -> httpx.Client:
         )
     return httpx.Client(
         base_url=API,
-        headers={
-            "Authorization": f"Bearer {config.FIREWORKS_API_KEY}",
-            "Content-Type": "application/json",
-        },
+        # No default Content-Type: httpx sets the right one per request itself
+        # (application/json for json=, multipart/form-data; boundary=... for
+        # files=). A fixed default here would win over the multipart header
+        # httpx computes for upload_dataset()'s file upload, breaking it.
+        headers={"Authorization": f"Bearer {config.FIREWORKS_API_KEY}"},
         timeout=300,
     )
 
