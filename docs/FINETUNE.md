@@ -24,8 +24,10 @@ known rare-disease cases teaches it to:
    most valuable next test, do-not-miss warning), and
 2. **Reach for the correct rare diagnosis** instead of the first plausible one.
 
-You can measure whether it worked: fine-tune, point `MODEL` at the tuned model,
-and re-run `python eval/run_eval.py` — the headline accuracy should go up.
+You can measure whether it worked: fine-tune, point `SYNTHESIS_MODEL` at the
+tuned model, and re-run `python eval/run_eval.py` — the headline accuracy
+should go up. That score is only meaningful because of the train/eval split
+described below — without it you'd mostly be measuring memorization.
 
 ## The three steps
 
@@ -34,7 +36,8 @@ and re-run `python eval/run_eval.py` — the headline accuracy should go up.
 #    evaluator uses. Skip if you already ran this for evaluation.
 python data/build_dataset.py
 
-# 2. Shape it into training conversations (free, no API key).
+# 2. Shape it into training conversations (needs your API key — real model
+#    calls, see "What it builds" below).
 python finetune/build_finetune_data.py
 
 # 3. Launch the fine-tuning job on Fireworks (needs your API key + account id).
@@ -51,20 +54,41 @@ conversation:
 | Role | Content |
 |---|---|
 | `system` | the board chair's instructions (`specialists.SYNTHESIS_PROMPT`) |
-| `user` | the patient case, formatted exactly as the app sends it |
+| `user` | the grounded case + retrieved evidence + every specialist's REAL opinion — the exact input the synthesis agent sees at inference time |
 | `assistant` | a **gold** briefing that names the correct diagnosis first, in AegisMed's structure |
 
-Building the `user` message with the app's own `_format_case` matters: the
-model should train on **the same text it will see at inference time**, or the
-skill won't transfer.
+The `user` turn is built by actually running retrieval and the specialist
+board (base model) for each case, via
+`aegismed.orchestrator._convene_board` — the same function
+`orchestrator.diagnose()` calls at real inference time. That means this step
+now makes **real, billed model calls** (1 retrieval + up to 7 specialists per
+case) — it needs `FIREWORKS_API_KEY` set and `DEMO_MODE` off, and costs
+roughly what running the app once per training case would cost. This matters:
+training the synthesis agent on a bare case description (no specialist
+opinions at all) taught it a different-shaped input than it ever sees in
+production, and the skill didn't transfer as well as it should have. Use
+`--limit 10` for a quick, cheap smoke test, and `--delay` to go easier on
+rate limits.
 
-> **Honesty note.** These gold answers are constructed from each case's verified
-> ground-truth diagnosis, not written by a stronger "teacher" model. So they
-> teach *format* and *correct-diagnosis recall* with faithful but generic
-> reasoning. That is exactly what moves the eval score, which rewards surfacing
-> the right diagnosis. If you want richer clinical reasoning in the targets,
-> generate them with a stronger model first (a "distillation" teacher) and feed
-> those into the same builder — the format is unchanged.
+> **Honesty note.** The gold **answers** are still constructed from each
+> case's verified ground-truth diagnosis, not written by a stronger "teacher"
+> model. So they teach *format* and *correct-diagnosis recall* with faithful
+> but generic reasoning, layered on top of now-real specialist input. If you
+> want richer clinical reasoning in the targets too, generate them with a
+> stronger model first (a "distillation" teacher) and feed those into the
+> same builder — the format is unchanged.
+
+### Keeping the eval score honest: the train/eval split
+
+`aegismed/data_split.py` permanently reserves ~25% of `data/eval_cases.jsonl`
+(by a hash of each case's `id`, so the holdout doesn't reshuffle as the pool
+grows) as **eval-only** — `finetune/build_finetune_data.py` only ever builds
+training examples from the other ~75%, and `eval/run_eval.py` scores against
+the eval-only holdout **by default**. Without this, most of the eval set
+would also be training data, so the headline accuracy would largely reflect
+the model recalling its own training target rather than generalizing to a
+new case. Pass `--all-cases` to `eval/run_eval.py` to score the full pool
+instead (only meaningful if you have *not* fine-tuned).
 
 ### Step 3 — what it does
 
@@ -128,16 +152,20 @@ the current command names and pricing.
 
 ## Cost & time
 
-A LoRA fine-tune on this small dataset (a few dozen examples, 1 epoch) is quick
-and inexpensive — well within the $50 Fireworks credit from the AMD program.
-Start with `--epochs 1`; only increase it if the validation examples suggest the
-model is under-fitting (rare with this much signal).
+Step 2 now makes real model calls to build each training example (1 retrieval
++ up to 7 specialists per case, same as running the app once per case) — with
+~55 fine-tuning-eligible cases that's on the order of a few hundred small
+calls, still cheap on the base model but no longer free. The LoRA fine-tune
+itself (step 3) on this small dataset (a few dozen examples, 1 epoch) is
+quick and inexpensive — well within the $50 Fireworks credit from the AMD
+program. Start with `--epochs 1`; only increase it if the validation examples
+suggest the model is under-fitting (rare with this much signal).
 
 ## Where the files live
 
 ```
 finetune/
-  build_finetune_data.py   # step 2 — makes train.jsonl / val.jsonl (offline)
+  build_finetune_data.py   # step 2 — makes train.jsonl / val.jsonl (real model calls)
   run_finetune.py          # step 3 — starts + watches the Fireworks job
   train.jsonl              # generated (gitignored)
   val.jsonl                # generated (gitignored)

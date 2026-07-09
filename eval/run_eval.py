@@ -35,7 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from aegismed import config, intake, orchestrator  # noqa: E402
+from aegismed import config, data_split, intake, orchestrator  # noqa: E402
 
 DATA_DIR = ROOT / "data"
 RESULTS = Path(__file__).resolve().parent / "results.md"
@@ -77,11 +77,16 @@ def is_hit(board_text: str, aliases: list[str]) -> bool:
     return False
 
 
-def load_cases(limit: int | None) -> list[dict]:
+def load_cases(limit: int | None, all_cases: bool = False) -> list[dict]:
     path = DATA_DIR / "eval_cases.jsonl"
     if not path.exists():
         sys.exit("data/eval_cases.jsonl not found — run: python data/build_dataset.py")
     cases = [json.loads(l) for l in path.read_text(encoding="utf-8").splitlines() if l.strip()]
+    if not all_cases:
+        # Default to the permanent eval-only holdout (aegismed.data_split) so
+        # the score reflects generalization, not cases that may have been
+        # fine-tuned on by finetune/build_finetune_data.py.
+        _, cases = data_split.split_cases(cases)
     return cases[:limit] if limit else cases
 
 
@@ -126,7 +131,7 @@ async def score_case(case: dict, alias_table: dict, use_intake: bool = True) -> 
 
 
 async def main_async(args) -> None:
-    cases = load_cases(args.limit)
+    cases = load_cases(args.limit, all_cases=args.all_cases)
     alias_table = load_alias_table()
 
     if config.demo_mode():
@@ -134,8 +139,14 @@ async def main_async(args) -> None:
         print("    scores are NOT meaningful. Set FIREWORKS_API_KEY in .env for")
         print("    a real evaluation. Running anyway to test the pipeline.\n")
 
+    pool_note = (
+        "full case pool — --all-cases: may overlap fine-tuning data, score is not trustworthy "
+        "if you've fine-tuned"
+        if args.all_cases
+        else "eval-only holdout, disjoint from fine-tuning data (aegismed.data_split)"
+    )
     intake_note = "on (auto-answered from case)" if not args.no_intake else "off"
-    print(f"Scoring {len(cases)} cases with model: {config.MODEL}")
+    print(f"Scoring {len(cases)} cases ({pool_note}) with model: {config.MODEL}")
     print(f"Intake step: {intake_note}\n")
     rows = []
     for i, case in enumerate(cases, 1):
@@ -154,10 +165,12 @@ async def main_async(args) -> None:
         if args.delay:
             time.sleep(args.delay)
 
-    write_report(rows, alias_table, use_intake=not args.no_intake)
+    write_report(rows, alias_table, use_intake=not args.no_intake, all_cases=args.all_cases)
 
 
-def write_report(rows: list[dict], alias_table: dict, use_intake: bool = True) -> None:
+def write_report(
+    rows: list[dict], alias_table: dict, use_intake: bool = True, all_cases: bool = False
+) -> None:
     total = len(rows)
     hits = sum(r["hit"] for r in rows)
     pct = 100 * hits / total if total else 0
@@ -174,6 +187,16 @@ def write_report(rows: list[dict], alias_table: dict, use_intake: bool = True) -
     lines.append(f"**Intake step:** {'on — questions auto-answered from the case' if use_intake else 'off'}  ")
     lines.append(f"**Demo mode:** {config.demo_mode()} "
                  f"{'(scores not meaningful)' if config.demo_mode() else ''}  ")
+    if all_cases:
+        lines.append(
+            "**Case pool:** full pool (`--all-cases`) — may overlap fine-tuning data; "
+            "not a trustworthy number if you've fine-tuned  "
+        )
+    else:
+        lines.append(
+            "**Case pool:** eval-only holdout, disjoint from fine-tuning data "
+            "(`aegismed.data_split`)  "
+        )
     lines.append("")
     lines.append(f"## Headline: correct diagnosis surfaced in "
                  f"**{hits}/{total} = {pct:.0f}%** of cases")
@@ -206,6 +229,12 @@ def main() -> None:
     ap.add_argument("--delay", type=float, default=0.0, help="seconds to pause between cases")
     ap.add_argument("--no-intake", action="store_true",
                     help="skip the intake step (score the raw case only — faster, fewer calls)")
+    ap.add_argument(
+        "--all-cases", action="store_true",
+        help="score the full case pool instead of the eval-only holdout — only "
+             "trustworthy if you have NOT fine-tuned (the holdout is what stays "
+             "disjoint from finetune/build_finetune_data.py's training data)",
+    )
     asyncio.run(main_async(ap.parse_args()))
 
 

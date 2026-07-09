@@ -61,11 +61,18 @@ def _format_case(
     return text
 
 
-async def diagnose(
+async def _convene_board(
     age: str, sex: str, symptoms: str, history: str, labs: str,
     clarifications: str = "",
 ) -> dict:
-    """Run the full board and return everything the UI needs as one dict."""
+    """Run retrieval + the specialist fan-out (steps 0-1) and assemble the
+    synthesis agent's input from their real opinions.
+
+    Split out from diagnose() so batch tooling — the fine-tuning data builder
+    (finetune/build_finetune_data.py) — can reuse the exact same real,
+    per-case specialist opinions and grounded case text the app produces at
+    inference time, without also calling the synthesis agent itself.
+    """
     from . import retrieval  # local import avoids a circular dependency
 
     case_text = _format_case(age, sex, symptoms, history, labs, clarifications)
@@ -92,7 +99,6 @@ async def diagnose(
         for name, text in zip(names, opinions)
     ]
 
-    # Step 2: the board chair merges the specialists' opinions into one briefing.
     # The roster is passed in so the chair adapts if specialties are added/removed.
     synthesis_input = (
         grounded_case
@@ -103,14 +109,33 @@ async def diagnose(
             for item in specialist_opinions
         )
     )
+
+    return {
+        "evidence": evidence,
+        "names": names,
+        "skipped": skipped,
+        "specialist_opinions": specialist_opinions,
+        "synthesis_input": synthesis_input,
+    }
+
+
+async def diagnose(
+    age: str, sex: str, symptoms: str, history: str, labs: str,
+    clarifications: str = "",
+) -> dict:
+    """Run the full board and return everything the UI needs as one dict."""
+    board = await _convene_board(age, sex, symptoms, history, labs, clarifications)
+
+    # Step 2: the board chair merges the specialists' opinions into one briefing.
     synthesis = await llm.chat(
-        SYNTHESIS_PROMPT, synthesis_input, agent_name="synthesis",
+        SYNTHESIS_PROMPT, board["synthesis_input"], agent_name="synthesis",
         model=config.SYNTHESIS_MODEL,
     )
 
     # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
     diagnoses = knowledge.extract_diagnoses(synthesis)
     references = knowledge.references_for(diagnoses)
+    evidence = board["evidence"]
 
     return {
         "disclaimer": DISCLAIMER,
@@ -119,10 +144,10 @@ async def diagnose(
         "evidence": {"phenotypes": evidence["phenotypes"], "candidates": evidence["candidates"]},
         "references": references,
         "routing": {
-            "selected_specialties": names,
-            "skipped_specialties": skipped,
+            "selected_specialties": board["names"],
+            "skipped_specialties": board["skipped"],
             "total_specialties": len(SPECIALISTS),
         },
-        "specialist_opinions": specialist_opinions,
+        "specialist_opinions": board["specialist_opinions"],
         "synthesis": synthesis,
     }

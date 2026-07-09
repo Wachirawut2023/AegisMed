@@ -10,26 +10,42 @@ rare-disease cases into training examples for the **synthesis agent** — the
 Each training example is one chat conversation in the format Fireworks expects:
 
   system    -> the board chair's standing instructions (specialists.SYNTHESIS_PROMPT)
-  user      -> the same patient case the app would send at inference time
+  user      -> the SAME input the synthesis agent sees at real inference time:
+               the grounded case + retrieved evidence + BOARD ROSTER + every
+               specialist's REAL opinion, produced by actually running
+               retrieval and the specialist board (base model) for this case
   assistant -> a GOLD answer that names the known-correct diagnosis first,
                written in AegisMed's exact output structure
 
-Showing the model hundreds of these teaches it two things at once:
-  1. the AegisMed output format (ranked differential, next test, do-not-miss…),
-  2. the habit of surfacing the correct rare diagnosis instead of stopping at
-     the obvious common one.
+This means each training example costs real model calls to build (1 retrieval
++ up to 7 specialists per case, via aegismed.orchestrator._convene_board — the
+exact same function aegismed/orchestrator.py:diagnose() calls) — it is NOT
+free/offline like earlier versions of this script. Earlier this script paired
+the gold answer with a bare case description and no specialist opinions at
+all, which doesn't match what the synthesis agent actually reads at inference
+time; the model was training on a different-shaped input than it would ever
+see in production. Building the real input matters: the model should train on
+the same text it will see at inference time, or the skill won't transfer.
 
-It reads the SAME ground-truth cases the evaluator uses (data/eval_cases.jsonl),
-so you can fine-tune and then re-run eval/run_eval.py to measure the lift.
-
-You run this once. It needs **no API key and no GPU** — it only shapes data.
-Actually launching the fine-tuning job happens next in finetune/run_finetune.py.
+It reads the SAME ground-truth cases the evaluator uses (data/eval_cases.jsonl)
+but ONLY the fine-tuning-eligible portion of them: aegismed.data_split keeps a
+permanent, disjoint holdout of cases reserved for eval/run_eval.py alone, so a
+case's gold answer is never trained into the model that then gets scored on
+that same case. Skipping this split is what made earlier eval numbers
+untrustworthy — most of the eval set was also in the training set.
 
 USAGE
 -----
   python finetune/build_finetune_data.py                 # default eval_cases.jsonl
   python finetune/build_finetune_data.py --val-frac 0.15 # bigger validation split
   python finetune/build_finetune_data.py --input data/eval_cases_noncommercial.jsonl
+  python finetune/build_finetune_data.py --limit 10      # quick, cheap smoke test
+  python finetune/build_finetune_data.py --delay 1.0     # pause between cases
+
+Needs FIREWORKS_API_KEY in .env (real model calls) — same key the app uses.
+DEMO_MODE must be off (the default once a key is set): demo mode returns the
+same canned specialist opinions for every case, which would actively poison
+training data rather than just being a no-op.
 
 OUTPUT (gitignored — it is generated, and may derive from non-commercial data)
   finetune/train.jsonl   <- training conversations
@@ -37,26 +53,29 @@ OUTPUT (gitignored — it is generated, and may derive from non-commercial data)
 
 A NOTE ON HONESTY
 -----------------
-These GOLD answers are built from each case's verified ground-truth diagnosis,
-not from a stronger teacher model. They teach format and correct-diagnosis
-recall with faithful but generic clinical reasoning. To distill richer reasoning
-from a teacher model instead, see the `--teacher` note in docs/FINETUNE.md.
+The GOLD (assistant) answers are still built from each case's verified
+ground-truth diagnosis, not from a stronger teacher model. They teach format
+and correct-diagnosis recall with faithful but generic clinical reasoning. To
+distill richer reasoning from a teacher model instead, see the `--teacher`
+note in docs/FINETUNE.md.
 """
 
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import random
 import sys
+import time
 from pathlib import Path
 
 # Make the aegismed package importable when run as `python finetune/...`.
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from aegismed import knowledge  # noqa: E402
-from aegismed.orchestrator import _format_case  # noqa: E402
+from aegismed import config, data_split, knowledge  # noqa: E402
+from aegismed.orchestrator import _convene_board  # noqa: E402
 from aegismed.specialists import SYNTHESIS_PROMPT  # noqa: E402
 
 DATA_DIR = ROOT / "data"
@@ -130,22 +149,26 @@ def build_gold_synthesis(case: dict) -> str:
     return "\n".join(lines)
 
 
-def build_example(case: dict) -> dict | None:
-    """Turn one ground-truth case into a Fireworks chat-format training row."""
+async def build_example(case: dict) -> dict | None:
+    """Turn one ground-truth case into a Fireworks chat-format training row.
+
+    Actually runs retrieval + the specialist board (base model, real calls)
+    for this case, so the `user` turn matches real synthesis-agent inference
+    input exactly — same helper (`orchestrator._convene_board`) the live app
+    uses in `orchestrator.diagnose()`.
+    """
     if not case.get("expected_diagnosis") or not case.get("symptoms"):
         return None
-    user = _format_case(
-        age=case.get("age", ""),
-        sex=case.get("sex", ""),
-        symptoms=case.get("symptoms", ""),
-        history=case.get("history", ""),
+    board = await _convene_board(
+        age=case.get("age", ""), sex=case.get("sex", ""),
+        symptoms=case.get("symptoms", ""), history=case.get("history", ""),
         labs=case.get("labs", ""),
     )
     assistant = build_gold_synthesis(case)
     return {
         "messages": [
             {"role": "system", "content": SYNTHESIS_PROMPT.strip()},
-            {"role": "user", "content": user.strip()},
+            {"role": "user", "content": board["synthesis_input"].strip()},
             {"role": "assistant", "content": assistant.strip()},
         ]
     }
@@ -169,6 +192,33 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
+async def build_examples(
+    cases: list[dict], delay: float
+) -> tuple[list[dict], list[dict]]:
+    """Build one training example per case, sequentially (real model calls).
+
+    Returns (examples, failures) — failures are (case, error) pairs for cases
+    that errored out; the case is skipped rather than aborting the whole run.
+    """
+    examples: list[dict] = []
+    failures: list[tuple[dict, str]] = []
+    for i, case in enumerate(cases, 1):
+        try:
+            example = await build_example(case)
+        except Exception as err:  # noqa: BLE001 — report and continue the run
+            failures.append((case, str(err)[:120]))
+            print(f"  [{i}/{len(cases)}] ! {case.get('id', '?')}: {str(err)[:80]}")
+            continue
+        if example is None:
+            print(f"  [{i}/{len(cases)}] · {case.get('id', '?')} (missing fields, skipped)")
+            continue
+        examples.append(example)
+        print(f"  [{i}/{len(cases)}] ✓ {case.get('id', '?')}")
+        if delay:
+            time.sleep(delay)
+    return examples, failures
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(
         description="Build AegisMed synthesis-agent fine-tuning data."
@@ -185,12 +235,41 @@ def main() -> None:
         help="fraction held out for validation (default: 0.1)",
     )
     ap.add_argument("--seed", type=int, default=7, help="random seed (reproducible)")
+    ap.add_argument(
+        "--limit", type=int, default=None,
+        help="only build from the first N fine-tuning-eligible cases (quick/cheap smoke test)",
+    )
+    ap.add_argument(
+        "--delay", type=float, default=0.0,
+        help="seconds to pause between cases (gentle on rate limits)",
+    )
     args = ap.parse_args()
 
-    cases = load_cases(Path(args.input))
-    examples = [ex for c in cases if (ex := build_example(c))]
+    if config.demo_mode():
+        sys.exit(
+            "DEMO_MODE is on (or no FIREWORKS_API_KEY is set), so every specialist "
+            "would return the same canned demo text regardless of the case. That "
+            "would poison the training data rather than just being a no-op — set "
+            "FIREWORKS_API_KEY (and DEMO_MODE=false or unset) in .env first. This "
+            "step now makes real, billed model calls: 1 retrieval + up to 7 "
+            "specialist calls per case."
+        )
+
+    all_cases = load_cases(Path(args.input))
+    eligible, eval_only = data_split.split_cases(all_cases)
+    if args.limit:
+        eligible = eligible[: args.limit]
+
+    print("── Building fine-tuning dataset (real model calls) ───────────")
+    print(f"source cases        : {len(all_cases)}  (from {Path(args.input).name})")
+    print(f"reserved for eval only, never trained on : {len(eval_only)}")
+    print(f"fine-tuning-eligible : {len(eligible)}"
+          + (f"  (using first {args.limit})" if args.limit else ""))
+    print()
+
+    examples, failures = asyncio.run(build_examples(eligible, args.delay))
     if not examples:
-        sys.exit("No usable training examples were produced from the input file.")
+        sys.exit("No usable training examples were produced.")
 
     rng = random.Random(args.seed)
     rng.shuffle(examples)
@@ -202,12 +281,15 @@ def main() -> None:
     if val:
         write_jsonl(OUT_DIR / "val.jsonl", val)
 
-    print("── Fine-tuning dataset built ───────────")
-    print(f"source cases : {len(cases)}  (from {Path(args.input).name})")
+    print("\n── Fine-tuning dataset built ───────────")
+    print(f"built        : {len(examples)}  (from {len(eligible)} eligible cases, "
+          f"{len(failures)} failed)")
     print(f"train        : {len(train)}  -> finetune/train.jsonl")
     if val:
         print(f"validation   : {len(val)}  -> finetune/val.jsonl")
     print(f"knowledge base entries available for citations: {knowledge.kb_size()}")
+    print(f"\n{len(eval_only)} cases were held out and never touched — score against "
+          f"those with eval/run_eval.py for a trustworthy number.")
     print("\nNext step: python finetune/run_finetune.py  (needs your Fireworks key)")
 
 
