@@ -1,0 +1,37 @@
+# Keep the build context (and image) small and clean.
+.git/
+.gitignore
+.github/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# OS / editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Not needed inside the image: tests, eval harness, docs, hackathon slides,
+# deploy scripts. The runtime only needs aegismed/, static/, data/, requirements.txt.
+tests/
+eval/
+docs/
+slides/
+deploy/
+requirements-dev.txt
+README.md
+LICENSE
+
+# Secrets — never bake into the image; pass via --env-file at run time.
+.env
+
+# Runtime-generated / non-committable data — must NOT ship stale data baked into
+# the image. cases.py creates data/cases.jsonl fresh on first save.
+data/cases.jsonl
+data/.cache/
+data/eval_cases_noncommercial.jsonl
+eval/results.md

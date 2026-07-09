@@ -116,3 +116,18 @@ def test_health_reports_demo_mode():
     body = resp.json()
     assert body["status"] == "ok"
     assert body["demo_mode"] is True
+    assert "endpoint" in body
+    assert "request_timeout_seconds" in body
+
+
+def test_diagnose_returns_504_when_board_exceeds_deadline(monkeypatch):
+    import asyncio
+
+    async def _hangs(*args, **kwargs):
+        await asyncio.sleep(10)
+
+    monkeypatch.setattr("aegismed.main.config.request_timeout", lambda: 0.05)
+    monkeypatch.setattr("aegismed.main.orchestrator.diagnose", _hangs)
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+    assert resp.status_code == 504

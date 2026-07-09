@@ -2,7 +2,10 @@
 
 **A virtual board of AI specialist physicians that helps doctors get second opinions on complex and undifferentiated cases.**
 
-Built for the [AMD Developer Hackathon: ACT II](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-ii) — Track 3 (Unicorn Track), powered by **Google Gemma** on **Fireworks AI** (AMD hardware) and **AMD Developer Cloud**.
+Built for the [AMD Developer Hackathon: ACT II](https://lablab.ai/ai-hackathons/amd-developer-hackathon-act-ii) — Track 3 (Unicorn Track), powered by **Google Gemma** running on **AMD Instinct MI300X GPUs** (via Fireworks AI, with an optional fully self-hosted path on **AMD Developer Cloud** — see [`docs/DEPLOY_AMD.md`](docs/DEPLOY_AMD.md)).
+
+<!-- DEMO_URL: paste your AMD Developer Cloud URL here after deploying with deploy/amd-cloud.sh -->
+**Live demo:** _deploy with [`deploy/amd-cloud.sh`](deploy/amd-cloud.sh) on AMD Developer Cloud, then paste your URL here._
 
 > ⚠️ **Medical disclaimer:** AegisMed is a clinical decision-support prototype for licensed physicians. It does not provide medical advice, diagnosis, or treatment. All output must be verified by a qualified clinician.
 
@@ -36,6 +39,21 @@ flowchart LR
     C1 & C2 & C3 & C4 & C5 & C6 & C7 --> D[🩺 Synthesis agent<br>board chair]
     D --> E[Ranked differential<br>+ rare-disease flags<br>+ next best test]
 ```
+
+## The product journey, end to end
+
+1. **Enter a case** — symptoms, history, labs (age/sex optional) — in the web UI or `POST /api/diagnose`.
+2. **Answer (or skip) the intake agent's questions**, if it has any.
+3. **The board convenes** — only the relevant specialists run, in parallel, grounded in real reference evidence.
+4. **Read the synthesis** — ranked differential, `[RARE]` flags, agreement/disagreement, next test, safety actions, do-not-miss warning — every diagnosis backed by verifiable Orphanet/OMIM/PubMed/GARD and guideline links.
+5. **Save, comment, or print** the result — `POST /api/cases/save` gives it a `case_id` for team follow-up; the browser print view exports a shareable report.
+6. **Teaching mode** (`POST /api/teaching/case`) runs the same board and grades it against an expected diagnosis, for medical-school case conferences.
+
+Every request returns within a bounded ~28s budget — see [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md). For the single-page summary of this journey plus every report in this repo, see [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md).
+
+## Is this ready for real patients?
+
+**As a prototype: yes** — one-command Docker, zero-cost demo mode, real AI with a key, 48 passing automated tests, and graceful fallbacks throughout. **As production clinical software: not yet** — no database, no auth, no PHI/HIPAA compliance, no regulatory clearance. Every gap is listed with what closing it would take in [`docs/PRODUCTION_READINESS.md`](docs/PRODUCTION_READINESS.md); nothing here is hidden or glossed over.
 
 ## Quickstart
 
@@ -96,11 +114,15 @@ All settings live in `.env` (see `.env.example`):
 | `FIREWORKS_API_KEY` | *(empty)* | Your Fireworks AI key ($50 free via the AMD AI Developer Program) |
 | `MODEL` | `accounts/fireworks/models/gemma-3-27b-it` | Which model powers the agents |
 | `DEMO_MODE` | `auto` | `auto` / `true` / `false` — sample output vs. real AI |
+| `LLM_BASE_URL` | *(empty → Fireworks)* | Point at any OpenAI-compatible endpoint, e.g. Gemma self-hosted on AMD Developer Cloud. See [`docs/DEPLOY_AMD.md`](docs/DEPLOY_AMD.md) |
+| `SPECIALIST_SELECTION` | `relevant` | `relevant` (smart routing) or `all` (force all 7) |
+| `REQUEST_TIMEOUT_SECONDS` | `28` | Overall per-request deadline — returns HTTP 504 rather than exceeding 30s |
+| `LLM_READ_TIMEOUT_SECONDS` | `12` | Read timeout for a single model call |
 
 ## Tech stack
 
-- **Google Gemma** (open-weight LLM) served by **Fireworks AI** on **AMD hardware**
-- **AMD Developer Cloud** for hosting/deployment
+- **Google Gemma** (open-weight LLM) served by **Fireworks AI** on **AMD Instinct MI300X GPUs** — or self-hosted directly on **AMD Developer Cloud** via `LLM_BASE_URL` (see [`docs/DEPLOY_AMD.md`](docs/DEPLOY_AMD.md))
+- **AMD Developer Cloud** for hosting/deployment — see [`deploy/amd-cloud.sh`](deploy/amd-cloud.sh)
 - **Python 3.11 + FastAPI** backend, single-page vanilla HTML/JS frontend
 - **Docker** for one-command, reproducible runs
 
@@ -119,10 +141,12 @@ aegismed/
 static/index.html  # the UI
 data/              # dataset builder + generated eval/demo cases (public sources)
 eval/              # evaluation harness (scores AegisMed on known cases)
+deploy/            # AMD Developer Cloud deploy script
+slides/            # submission slide deck (HTML source, rendered to docs/AegisMed_Deck.pdf)
 docs/              # hackathon guide, architecture, roadmap, checklist, data & eval
 ```
 
-New here? Start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — it explains every concept in plain language. For the product/market story, see [`docs/MARKET_EXPANSION.md`](docs/MARKET_EXPANSION.md); to integrate the board into another product, see [`docs/API.md`](docs/API.md).
+New here? Start with [`docs/PROJECT_SUMMARY.md`](docs/PROJECT_SUMMARY.md) — a one-page index of every report plus the full product journey. For how the code works, see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — it explains every concept in plain language. For the product/market story, see [`docs/MARKET_EXPANSION.md`](docs/MARKET_EXPANSION.md); to integrate the board into another product, see [`docs/API.md`](docs/API.md); to deploy on AMD Developer Cloud, see [`docs/DEPLOY_AMD.md`](docs/DEPLOY_AMD.md).
 
 ## License
 

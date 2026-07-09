@@ -19,8 +19,12 @@ Sat July 11, 4:00 PM UTC (11:00 PM Thailand)** — target ~6 PM Thailand to be s
 - [ ] README has working setup + usage instructions (test on a machine that isn't yours)
 - [ ] **Containerized:** `docker compose up --build` works from a fresh clone ⚠️ hard requirement
 - [ ] **Demo application URL** is live (AMD Developer Cloud) and loads from another network
+      — deploy with `deploy/amd-cloud.sh` (see `docs/DEPLOY_AMD.md`), then fill in the
+      `<!-- DEMO_URL -->` placeholder at the top of `README.md`
 - [ ] Demo URL entered in the form
 - [ ] `.env` with your real API key is **NOT** in the repo (it's gitignored — verify anyway)
+- [ ] Response time per request is under 30s (verified: `REQUEST_TIMEOUT_SECONDS=28` deadline,
+      see `docs/PRODUCTION_READINESS.md`)
 
 ## ⚖️ Compliance
 - [ ] Work is original, built during/for this hackathon
