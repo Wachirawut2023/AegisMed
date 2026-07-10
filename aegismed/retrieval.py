@@ -92,19 +92,23 @@ def _build_dossier(phenotypes: list[str], candidates: list[dict]) -> str:
     return "\n".join(lines)
 
 
-async def retrieve(age: str, sex: str, symptoms: str, history: str, labs: str) -> dict:
+async def retrieve(
+    age: str, sex: str, symptoms: str, history: str, labs: str, api_key: str = "",
+) -> dict:
     """Return {phenotypes, candidates, relevant_specialties, dossier} for a case.
 
     One model call does triage (which specialists are relevant) AND reference
     lookup (phenotypes + candidate diseases), so gating adds no extra call.
+
+    If api_key is provided, use it instead of the server's default FIREWORKS_API_KEY.
     """
-    if config.demo_mode():
+    if config.demo_mode(api_key):
         phenotypes = DEMO_RETRIEVAL_PHENOTYPES
         names = DEMO_RETRIEVAL_CANDIDATES
         relevant = _validate_specialties(DEMO_RETRIEVAL_SPECIALTIES)
     else:
         case_text = _format_case(age, sex, symptoms, history, labs)
-        raw = await llm.chat(RETRIEVAL_PROMPT, case_text, agent_name="retrieval")
+        raw = await llm.chat(RETRIEVAL_PROMPT, case_text, agent_name="retrieval", api_key=api_key)
         parsed = _parse_json(raw)
         phenotypes = parsed["key_phenotypes"]
         names = parsed["candidate_diseases"]

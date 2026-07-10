@@ -81,7 +81,7 @@ async def gather_questions(
     case_text = _format_case(age, sex, symptoms, history, labs)
     raw = await llm.chat(INTAKE_PROMPT, case_text, agent_name="intake", api_key=api_key)
     result = _parse_intake_json(raw)
-    result["demo_mode"] = config.demo_mode()
+    result["demo_mode"] = config.demo_mode(api_key)
     return result
 
 

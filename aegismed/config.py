@@ -28,19 +28,23 @@ FIREWORKS_API_URL: str = "https://api.fireworks.ai/inference/v1/chat/completions
 ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*").strip()
 
 
-def demo_mode() -> bool:
+def demo_mode(api_key: str = "") -> bool:
     """Decide whether to use canned sample answers instead of the real AI.
 
     DEMO_MODE=true  -> always demo
     DEMO_MODE=false -> always real AI
-    DEMO_MODE=auto  -> demo only when no API key is configured (the default)
+    DEMO_MODE=auto  -> demo only when no API key is available at all: neither
+                       this server's FIREWORKS_API_KEY nor a per-request key
+                       the caller supplied (the default). This lets a server
+                       run with no key of its own and still do real diagnoses
+                       whenever a caller brings their own Fireworks key.
     """
     setting = os.getenv("DEMO_MODE", "auto").strip().lower()
     if setting == "true":
         return True
     if setting == "false":
         return False
-    return not FIREWORKS_API_KEY
+    return not (FIREWORKS_API_KEY or api_key.strip())
 
 
 def specialist_selection() -> str:

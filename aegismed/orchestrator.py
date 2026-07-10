@@ -84,6 +84,7 @@ async def diagnose(
         age=age, sex=sex, symptoms=symptoms,
         history=(history + ("\n" + clarifications if clarifications else "")),
         labs=labs,
+        api_key=api_key,
     )
     grounded_case = case_text + ("\n\n" + evidence["dossier"] if evidence["dossier"] else "")
 
@@ -119,10 +120,11 @@ async def diagnose(
     references = knowledge.references_for(diagnoses)
     guideline_references = guidelines.guidelines_for(diagnoses, region=region)
 
+    is_demo = config.demo_mode(api_key)
     return {
         "disclaimer": DISCLAIMER,
-        "demo_mode": config.demo_mode(),
-        "demo_banner": DEMO_BANNER if config.demo_mode() else "",
+        "demo_mode": is_demo,
+        "demo_banner": DEMO_BANNER if is_demo else "",
         "region": region,
         "evidence": {"phenotypes": evidence["phenotypes"], "candidates": evidence["candidates"]},
         "references": references,

@@ -23,7 +23,7 @@ async def chat(system_prompt: str, user_prompt: str, agent_name: str = "", api_k
 
     If api_key is provided, use it instead of the server's default FIREWORKS_API_KEY.
     """
-    if config.demo_mode():
+    if config.demo_mode(api_key):
         if agent_name == "intake":
             return demo_data.DEMO_INTAKE
         if agent_name == "synthesis":
