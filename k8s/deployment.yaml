@@ -1,0 +1,342 @@
+# AegisMed Kubernetes Deployment
+# Includes: Deployment, Service, HPA, and ConfigMap
+#
+# Prerequisites:
+#   - kubectl configured to your cluster
+#   - Container image built and pushed: docker build -t your-registry/aegismed .
+#   - Fireworks API key stored in secret
+#
+# Setup:
+#   1. Create namespace: kubectl create namespace aegismed
+#   2. Create secret: kubectl create secret generic aegismed-secrets \
+#        --from-literal=api-key=fw_your_key_here -n aegismed
+#   3. Update image in this file: s/your-registry\/aegismed/your-actual-image/
+#   4. Apply: kubectl apply -f k8s/deployment.yaml
+#   5. Monitor: kubectl get pods -n aegismed -w
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aegismed
+
+---
+# ConfigMap for application settings
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aegismed-config
+  namespace: aegismed
+data:
+  MODEL: "accounts/fireworks/models/gemma-3-27b-it"
+  DEMO_MODE: "false"
+  # Add other environment variables here if needed
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: aegismed
+  namespace: aegismed
+  labels:
+    app: aegismed
+    version: v1
+spec:
+  replicas: 3  # Initial number of replicas (HPA will auto-scale)
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  selector:
+    matchLabels:
+      app: aegismed
+  template:
+    metadata:
+      labels:
+        app: aegismed
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Pod disruption budget (for safe eviction during upgrades)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - aegismed
+              topologyKey: kubernetes.io/hostname
+
+      containers:
+      - name: aegismed
+        image: your-registry/aegismed:latest  # CHANGE THIS
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: http
+          containerPort: 8000
+          protocol: TCP
+
+        # Environment variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: aegismed-config
+
+        # Environment variables from Secret
+        env:
+        - name: FIREWORKS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: aegismed-secrets
+              key: api-key
+
+        # Resource requests and limits
+        resources:
+          requests:
+            cpu: "100m"        # Minimum CPU (10% of 1 core)
+            memory: "256Mi"    # Minimum memory
+          limits:
+            cpu: "500m"        # Maximum CPU (50% of 1 core)
+            memory: "512Mi"    # Maximum memory
+
+        # Liveness probe (restart if app dies)
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+
+        # Readiness probe (traffic only when ready)
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 2
+
+        # Startup probe (give app time to boot)
+        startupProbe:
+          httpGet:
+            path: /health
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 0
+          periodSeconds: 1
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30  # 30 seconds to boot
+
+        # Security context
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 1000
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+
+        # Volume mounts for writable directories
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: var-run
+          mountPath: /var/run
+
+      # Volumes
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      - name: var-run
+        emptyDir: {}
+
+      # Pod security policy
+      securityContext:
+        fsGroup: 1000
+
+      # Termination grace period (time for graceful shutdown)
+      terminationGracePeriodSeconds: 30
+
+      # Service account (if needed)
+      serviceAccountName: default
+
+---
+# Service (Kubernetes DNS + internal load balancing)
+apiVersion: v1
+kind: Service
+metadata:
+  name: aegismed-service
+  namespace: aegismed
+  labels:
+    app: aegismed
+spec:
+  type: LoadBalancer  # Change to ClusterIP for internal-only
+  selector:
+    app: aegismed
+  ports:
+  - name: http
+    protocol: TCP
+    port: 80
+    targetPort: http
+
+  # Session affinity (optional, for stateful scenarios)
+  sessionAffinity: None
+
+  # External traffic policy
+  externalTrafficPolicy: Local  # Preserves source IP
+
+  # Session timeout
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# Horizontal Pod Autoscaler (auto-scaling)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: aegismed-hpa
+  namespace: aegismed
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: aegismed
+
+  # Scale between 3 and 10 pods
+  minReplicas: 3
+  maxReplicas: 10
+
+  # Metrics for scaling
+  metrics:
+
+  # CPU-based scaling (target 70% average CPU)
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+
+  # Memory-based scaling (target 80% average memory)
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+
+  # Scaling behavior (optional, for fine-tuning)
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # Wait 5 min before scaling down
+      policies:
+      - type: Percent
+        value: 50  # Scale down 50% of pods
+        periodSeconds: 60
+      - type: Pods
+        value: 2   # Or 2 pods, whichever is less
+        periodSeconds: 60
+      selectPolicy: Min  # Use the policy that scales down least
+
+    scaleUp:
+      stabilizationWindowSeconds: 0  # Scale up immediately
+      policies:
+      - type: Percent
+        value: 100  # Scale up 100% of pods (double)
+        periodSeconds: 60
+      - type: Pods
+        value: 5    # Or 5 pods, whichever is more
+        periodSeconds: 60
+      selectPolicy: Max  # Use the policy that scales up most
+
+---
+# Pod Disruption Budget (for safe eviction)
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: aegismed-pdb
+  namespace: aegismed
+spec:
+  minAvailable: 2  # Keep at least 2 pods running during disruptions
+  selector:
+    matchLabels:
+      app: aegismed
+
+---
+# NetworkPolicy (optional, for security)
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aegismed-network-policy
+  namespace: aegismed
+spec:
+  podSelector:
+    matchLabels:
+      app: aegismed
+
+  policyTypes:
+  - Ingress
+  - Egress
+
+  ingress:
+  # Allow from Nginx Ingress Controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 8000
+
+  # Allow from same namespace
+  - from:
+    - podSelector:
+        matchLabels:
+          app: aegismed
+    ports:
+    - protocol: TCP
+      port: 8000
+
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector: {}
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+
+  # Allow external HTTPS (to Fireworks API)
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+
+  # Allow to same namespace
+  - to:
+    - podSelector:
+        matchLabels:
+          app: aegismed
+    ports:
+    - protocol: TCP
+      port: 8000

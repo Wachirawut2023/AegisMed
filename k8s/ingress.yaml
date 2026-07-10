@@ -1,0 +1,166 @@
+# AegisMed Kubernetes Ingress
+# Provides HTTP/HTTPS routing with Let's Encrypt SSL
+#
+# Prerequisites:
+#   - NGINX Ingress Controller installed
+#   - cert-manager installed (for SSL certificates)
+#   - Domain DNS pointing to cluster ingress IP
+#
+# Install ingress controller (if not present):
+#   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+#   helm install ingress-nginx ingress-nginx/ingress-nginx \
+#     --namespace ingress-nginx --create-namespace
+#
+# Install cert-manager:
+#   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+#
+# Apply this file:
+#   kubectl apply -f k8s/ingress.yaml
+#   kubectl get ingress -n aegismed -w
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: aegismed
+
+---
+# ClusterIssuer for Let's Encrypt (auto SSL certificates)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: admin@example.com  # CHANGE THIS
+    privateKeySecretRef:
+      name: letsencrypt-prod-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+
+---
+# ClusterIssuer for Let's Encrypt Staging (for testing)
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: admin@example.com  # CHANGE THIS
+    privateKeySecretRef:
+      name: letsencrypt-staging-key
+    solvers:
+    - http01:
+        ingress:
+          class: nginx
+
+---
+# Ingress for Aegismed
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: aegismed-ingress
+  namespace: aegismed
+  labels:
+    app: aegismed
+  annotations:
+    # Let's Encrypt SSL certificate
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+
+    # NGINX-specific annotations
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+
+    # Rate limiting (10 req/sec per IP)
+    nginx.ingress.kubernetes.io/limit-rps: "10"
+
+    # CORS headers
+    nginx.ingress.kubernetes.io/enable-cors: "true"
+    nginx.ingress.kubernetes.io/cors-allow-origin: "*"
+
+    # Proxy timeouts (for long LLM responses)
+    nginx.ingress.kubernetes.io/proxy-connect-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+
+    # Body size limit
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+
+    # Security headers
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      more_set_headers "X-Frame-Options: DENY";
+      more_set_headers "X-Content-Type-Options: nosniff";
+      more_set_headers "X-XSS-Protection: 1; mode=block";
+      more_set_headers "Referrer-Policy: strict-origin-when-cross-origin";
+
+spec:
+  ingressClassName: nginx
+
+  tls:
+  # HTTPS certificate
+  - hosts:
+    - aegismed.example.com  # CHANGE THIS
+    secretName: aegismed-tls
+
+  rules:
+  # HTTP to HTTPS redirect (automatic with nginx)
+  - host: aegismed.example.com  # CHANGE THIS
+    http:
+      paths:
+      # Root path
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: aegismed-service
+            port:
+              number: 80
+
+      # API endpoints
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: aegismed-service
+            port:
+              number: 80
+
+      # Health check
+      - path: /health
+        pathType: Exact
+        backend:
+          service:
+            name: aegismed-service
+            port:
+              number: 80
+
+---
+# Optional: Ingress for multiple domains/paths
+# Uncomment to add additional domains
+# apiVersion: networking.k8s.io/v1
+# kind: Ingress
+# metadata:
+#   name: aegismed-ingress-secondary
+#   namespace: aegismed
+#   annotations:
+#     cert-manager.io/cluster-issuer: letsencrypt-prod
+# spec:
+#   ingressClassName: nginx
+#   tls:
+#   - hosts:
+#     - api.example.com
+#     secretName: aegismed-api-tls
+#   rules:
+#   - host: api.example.com
+#     http:
+#       paths:
+#       - path: /
+#         pathType: Prefix
+#         backend:
+#           service:
+#             name: aegismed-service
+#             port:
+#               number: 80
