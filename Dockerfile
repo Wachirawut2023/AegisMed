@@ -13,6 +13,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the application code
 COPY aegismed/ aegismed/
 COPY static/ static/
+# Knowledge base, guideline index, and demo/example cases — read at runtime
+# by aegismed/knowledge.py, guidelines.py, and main.py. Without this the app
+# still boots but with an empty knowledge base (0 diseases) and no demo cases.
+COPY data/ data/
 
 EXPOSE 8000
 
