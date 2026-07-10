@@ -21,6 +21,24 @@ MODEL: str = os.getenv("MODEL", "accounts/fireworks/models/gemma-3-27b-it").stri
 
 FIREWORKS_API_URL: str = "https://api.fireworks.ai/inference/v1/chat/completions"
 
+# Override to call a self-hosted OpenAI-compatible endpoint instead of
+# Fireworks — e.g. vLLM serving Gemma on an AMD Developer Cloud GPU droplet
+# (http://your-droplet-ip:8000/v1/chat/completions). Defaults to Fireworks.
+# FIREWORKS_API_KEY is sent as this endpoint's bearer token (leave blank if
+# the self-hosted server has no --api-key set).
+LLM_API_URL: str = os.getenv("LLM_API_URL", FIREWORKS_API_URL).strip()
+
+# Optional fallback model/endpoint, tried only if the primary (LLM_API_URL)
+# call fails — e.g. a serverless Fireworks model (which has no cold start
+# and no dedicated-deployment cost) as a safety net behind a self-hosted
+# Gemma droplet that might be down or still warming up. Empty FALLBACK_MODEL
+# disables the fallback (the primary's error is raised as-is). The fallback
+# always uses FALLBACK_API_KEY, independent of any per-request judge key —
+# it's this deployment's own reliability net, not a judge-facing feature.
+FALLBACK_MODEL: str = os.getenv("FALLBACK_MODEL", "").strip()
+FALLBACK_API_URL: str = os.getenv("FALLBACK_API_URL", FIREWORKS_API_URL).strip()
+FALLBACK_API_KEY: str = os.getenv("FALLBACK_API_KEY", "").strip()
+
 # Comma-separated list of origins allowed to call this API (for when the
 # frontend is hosted separately, e.g. Firebase Hosting + this backend on
 # Cloud Run). Defaults to "*" (allow any origin) so local/single-host use
