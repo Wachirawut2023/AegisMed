@@ -63,6 +63,13 @@ uvicorn aegismed.main:app --port 8000
 
 Open **http://localhost:8000**.
 
+### Option C — live web app (Firebase Hosting + Cloud Run)
+
+To give judges a single URL with nothing to install (no Docker, no clone),
+deploy the frontend to Firebase Hosting and the backend to Cloud Run — the
+backend holds the shared Fireworks key, so judges never need their own.
+See [`docs/DEPLOY_FIREBASE.md`](docs/DEPLOY_FIREBASE.md) for the full guide.
+
 ### Demo mode vs. real AI
 
 With **no API key**, AegisMed runs in **demo mode**: the built-in example case returns realistic pre-written board output so you can explore the full experience at zero cost. To enable the real AI agents, put your [Fireworks AI](https://fireworks.ai) API key in `.env`:

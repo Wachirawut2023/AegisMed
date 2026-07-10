@@ -264,6 +264,13 @@
 <script>
 const $ = (id) => document.getElementById(id);
 
+// When the frontend is hosted separately from the backend (e.g. this page on
+// Firebase Hosting, the API on Cloud Run), set API_BASE to the backend's
+// origin, e.g. "https://aegismed-abc123.run.app". Leave "" for same-origin
+// deployments (Docker/local), where relative /api/... paths already work.
+const API_BASE = "";
+const api = (path) => API_BASE + path;
+
 // Tiny formatter: turns the model's **bold** and line breaks into HTML, safely.
 function renderText(text) {
   const escaped = text
@@ -277,7 +284,7 @@ function renderText(text) {
 let demoCases = [];
 (async () => {
   try {
-    const res = await fetch("/api/demo-cases");
+    const res = await fetch(api("/api/demo-cases"));
     demoCases = await res.json();
     const picker = $("examplePicker");
     demoCases.forEach((c, i) => {
@@ -292,7 +299,7 @@ let demoCases = [];
 // Load recent cases on page load
 (async () => {
   try {
-    const res = await fetch("/api/cases");
+    const res = await fetch(api("/api/cases"));
     const cases_list = await res.json();
     if (!cases_list.length) {
       $("recentCases").innerHTML = "<span style='color:var(--muted);'>No saved cases yet.</span>";
@@ -312,7 +319,7 @@ let demoCases = [];
 async function loadCase(caseId) {
   try {
     $("status").innerHTML = '<span class="spinner"></span>Loading case…';
-    const res = await fetch(`/api/cases/${caseId}`);
+    const res = await fetch(api(`/api/cases/${caseId}`));
     if (!res.ok) throw new Error("Case not found");
     const caseData = await res.json();
     const output = caseData.board_output;
@@ -391,7 +398,7 @@ $("run").addEventListener("click", async () => {
   $("status").innerHTML = '<span class="spinner"></span>The intake clinician is reviewing the case…';
 
   try {
-    const res = await fetch("/api/intake", {
+    const res = await fetch(api("/api/intake"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(c),
@@ -442,7 +449,7 @@ async function runDiagnosis(clarifications) {
   $("results").classList.add("hidden");
 
   try {
-    const res = await fetch("/api/diagnose", {
+    const res = await fetch(api("/api/diagnose"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...readCase(), clarifications }),
@@ -554,7 +561,7 @@ $("saveBtn").addEventListener("click", async () => {
   $("saveBtn").disabled = true;
 
   try {
-    const res = await fetch("/api/cases/save", {
+    const res = await fetch(api("/api/cases/save"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -647,7 +654,7 @@ async function runDiagnosis(clarifications) {
   $("results").classList.add("hidden");
 
   try {
-    const endpoint = isTeaching ? "/api/teaching/case" : "/api/diagnose";
+    const endpoint = api(isTeaching ? "/api/teaching/case" : "/api/diagnose");
     const body = { ...readCase(), clarifications };
     if (isTeaching) body.expected_diagnosis = expectedDiagnosis;
 

@@ -16,4 +16,6 @@ COPY static/ static/
 
 EXPOSE 8000
 
-CMD ["uvicorn", "aegismed.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Cloud Run injects PORT (usually 8080) and requires listening on it; local
+# Docker/Compose runs don't set PORT, so this falls back to 8000.
+CMD ["sh", "-c", "uvicorn aegismed.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

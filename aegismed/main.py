@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
@@ -33,6 +34,17 @@ app = FastAPI(
     ),
     version=__version__,
     openapi_tags=TAGS_METADATA,
+)
+
+# Allow the Firebase-hosted frontend (a different origin than this backend) to
+# call the API. ALLOWED_ORIGINS is a comma-separated list in .env; defaults to
+# "*" so local/demo use keeps working without any config.
+_origins = [o.strip() for o in config.ALLOWED_ORIGINS.split(",") if o.strip()] or ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

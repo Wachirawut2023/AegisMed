@@ -21,6 +21,12 @@ MODEL: str = os.getenv("MODEL", "accounts/fireworks/models/gemma-3-27b-it").stri
 
 FIREWORKS_API_URL: str = "https://api.fireworks.ai/inference/v1/chat/completions"
 
+# Comma-separated list of origins allowed to call this API (for when the
+# frontend is hosted separately, e.g. Firebase Hosting + this backend on
+# Cloud Run). Defaults to "*" (allow any origin) so local/single-host use
+# keeps working with zero config.
+ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*").strip()
+
 
 def demo_mode() -> bool:
     """Decide whether to use canned sample answers instead of the real AI.
