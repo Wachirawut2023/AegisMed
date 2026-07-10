@@ -13,6 +13,18 @@ alone — no chat history required.
 > evidence for the "why we ship on base Gemma" note in
 > [`PRODUCT_OVERVIEW.md`](PRODUCT_OVERVIEW.md) — the file paths it references
 > live on that other branch, not this checkout.
+>
+> **Update — a later, cleaner comparison superseded some of this report's
+> open items.** Section 5 below ("What's still needed") called for a true
+> same-base comparison and a larger holdout. A separate branch,
+> `claude/model-comparison-finetuned-mietac-akc868`, ran exactly that: all 7
+> specialists + synthesis on the *same* model per pass (no stand-in), across
+> 75 cases instead of 21. Result: fine-tuned 35/75 (47%) vs. base Gemma 3
+> 34/75 (45%) — still a wash, now with a cleaner, larger sample. See
+> [`eval/model_comparison.md`](../eval/model_comparison.md) and
+> [`eval/compare_models.py`](../eval/compare_models.py) (brought into this
+> branch as supporting evidence, same as this report). The billing
+> suspension noted in section 3 below was evidently resolved before that run.
 
 ## 1. What was built
 

@@ -307,31 +307,38 @@ Ranked differential diagnosis:
 
 ### Model choice: why we ship on base Gemma
 
-We built a full fine-tuning pipeline for AegisMed's synthesis agent — a LoRA
-adapter trained on Gemma-3-27B using real specialist opinions and
-teacher-distilled gold answers from held-out cases — and A/B-tested it
-against the base model. Both arms scored identically: 16/21 (76%) on our
-evaluation holdout, with exactly one case flipping in each direction.
+We tested three models on the full board — every agent (intake, retrieval,
+all 7 specialists, synthesis) running on the same model per pass, so this is
+a true single-variable comparison, not a partial swap:
 
-Rather than take an identical score at face value, we investigated what it
-could and couldn't tell us:
-- The "baseline" arm used a stand-in model rather than untuned
-  `gemma-3-27b-it` itself (unavailable on our account's serverless tier at
-  the time), so this was never a clean base-vs-tuned comparison.
-- The scoring metric counted a hit if the diagnosis appeared anywhere across
-  all 7 specialist opinions — identical in both arms — which diluted any
-  signal from the one agent that actually differed.
-- A 21-case holdout is too small to reliably distinguish a real modest
-  effect from noise.
+| Model | Hit rate (75 cases) | Errors |
+|---|---|---|
+| Fine-tuned (LoRA on Gemma-3-27B) | 35/75 (47%) | 0 |
+| **Base Gemma 3 (27B)** | 34/75 (45%) | 1 |
+| Gemma 4 (31B) | 6/75 (8%)\* | 64 |
 
-We chose to document these limitations rather than overclaim a result we
-can't rigorously support (full writeup in
-[`docs/FINETUNE_EVAL_REPORT.md`](FINETUNE_EVAL_REPORT.md)). AegisMed's
-deployed board runs on Gemma's base model. What the evaluation *does*
-support: the multi-agent architecture — grounded retrieval, parallel
-specialist fan-out, and structured synthesis — is what's carrying
-diagnostic accuracy, largely independent of which specific model writes the
-final synthesis.
+\*Not a real capability score — 64 of 75 Gemma 4 calls crashed with a
+harness bug (`.strip()` on a missing response field, likely a different
+response format than the Gemma 3 family), not a wrong diagnosis. Of the 11
+calls that actually completed, Gemma 4 got 6 right (55%) — too small a
+sample to draw a conclusion, but not the picture the raw "8%" suggests. We're
+reporting this failure rather than hiding it.
+
+**Fine-tuned vs. base Gemma 3: a ~2-point gap on 75 cases, one case apart —
+within the noise of a single-pass eval at temperature 0.4, not a
+statistically meaningful difference.** This is the second, larger, cleaner
+pass at the question: an earlier 21-case A/B test (only the synthesis step
+swapped, base arm played by a stand-in model) reached the same conclusion
+with weaker evidence — see
+[`docs/FINETUNE_EVAL_REPORT.md`](FINETUNE_EVAL_REPORT.md) for that
+investigation, and [`eval/model_comparison.md`](../eval/model_comparison.md)
+/ [`eval/compare_models.py`](../eval/compare_models.py) for this one's full
+per-case results and harness.
+
+AegisMed's deployed board runs on Gemma's base model. What the evaluation
+supports: the multi-agent architecture — grounded retrieval, parallel
+specialist fan-out, and structured synthesis — is what's carrying diagnostic
+accuracy, largely independent of which specific model handles inference.
 
 ---
 
