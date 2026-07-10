@@ -163,6 +163,23 @@
       </div>
     </div>
 
+    <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+      <details style="cursor:pointer;">
+        <summary style="font-weight:600;color:var(--muted);">🔑 Use your own Fireworks API key (optional)</summary>
+        <div style="margin-top:12px;padding:12px;background:var(--accent-soft);border-radius:8px;border-left:4px solid var(--danger);">
+          <p style="margin:0 0 12px;font-size:.85rem;color:var(--danger);"><strong>⚠️ Security notice:</strong> Your API key will be transmitted over the network. Only use this if:</p>
+          <ul style="margin:0;padding-left:20px;font-size:.85rem;color:var(--muted);">
+            <li>You have your own Fireworks account and want to use your own credits</li>
+            <li>This connection is over HTTPS (encrypted)</li>
+            <li>You trust this server's privacy and logging practices</li>
+          </ul>
+          <label for="apiKey" style="display:block;margin-top:12px;margin-bottom:4px;font-weight:600;font-size:.9rem;">Fireworks AI API key (leave empty to use shared server key)</label>
+          <input id="apiKey" type="password" placeholder="fw_..." max_length="200" style="font-family:monospace;">
+          <p style="margin:8px 0 0;font-size:.75rem;color:var(--muted);">If empty, the shared server API key will be used (recommended).</p>
+        </div>
+      </details>
+    </div>
+
     <div class="actions">
       <button class="primary" id="run">Convene the board</button>
       <select id="examplePicker" class="ghost" style="max-width:340px;">
@@ -355,6 +372,7 @@ function readCase() {
     history: $("history").value.trim(),
     labs: $("labs").value.trim(),
     region: $("region").value,
+    api_key: $("apiKey").value.trim(),
   };
 }
 

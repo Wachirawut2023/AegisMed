@@ -15,11 +15,13 @@ class LLMError(Exception):
     """Raised when the AI service cannot be reached or returns an error."""
 
 
-async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> str:
+async def chat(system_prompt: str, user_prompt: str, agent_name: str = "", api_key: str = "") -> str:
     """Send one question to the model and return its answer as plain text.
 
     In demo mode this returns pre-written sample output instead (zero cost,
     no API key needed) so the whole app can be tried and demonstrated offline.
+
+    If api_key is provided, use it instead of the server's default FIREWORKS_API_KEY.
     """
     if config.demo_mode():
         if agent_name == "intake":
@@ -31,6 +33,9 @@ async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> st
             "Demo mode: no sample answer available for this agent.",
         )
 
+    # Use provided API key, or fall back to server's default
+    key_to_use = (api_key or config.FIREWORKS_API_KEY).strip()
+
     payload = {
         "model": config.MODEL,
         "messages": [
@@ -41,7 +46,7 @@ async def chat(system_prompt: str, user_prompt: str, agent_name: str = "") -> st
         "max_tokens": 1024,
     }
     headers = {
-        "Authorization": f"Bearer {config.FIREWORKS_API_KEY}",
+        "Authorization": f"Bearer {key_to_use}",
         "Content-Type": "application/json",
     }
 

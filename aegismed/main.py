@@ -49,6 +49,10 @@ class PatientCase(BaseModel):
     # Practice region: shifts which guideline authorities are foregrounded and
     # which the specialists are nudged to cite. See docs/ROADMAP.md Phase 3e.
     region: str = Field(default="us", pattern="^(us|uk|eu)$")
+    # Optional: judge's own Fireworks API key. If provided, this is used instead
+    # of the server's default key. Useful for hackathons where judges have their
+    # own Fireworks accounts. Leave empty to use the shared server key.
+    api_key: str = Field(default="", max_length=200)
 
 
 class TeachingCase(PatientCase):
@@ -159,6 +163,7 @@ async def intake_questions(case: PatientCase) -> dict:
             symptoms=case.symptoms,
             history=case.history,
             labs=case.labs,
+            api_key=case.api_key,
         )
     except llm.LLMError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err
@@ -180,6 +185,7 @@ async def diagnose(case: PatientCase) -> dict:
             labs=case.labs,
             clarifications=case.clarifications,
             region=case.region,
+            api_key=case.api_key,
         )
     except llm.LLMError as err:
         raise HTTPException(status_code=502, detail=str(err)) from err
@@ -207,6 +213,7 @@ async def teaching_case(case: TeachingCase) -> dict:
             labs=case.labs,
             clarifications=case.clarifications,
             region=case.region,
+            api_key=case.api_key,
         )
 
         # Extract the diagnoses from the board's synthesis.

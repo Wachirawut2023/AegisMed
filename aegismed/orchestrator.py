@@ -68,9 +68,12 @@ def _format_case(
 
 async def diagnose(
     age: str, sex: str, symptoms: str, history: str, labs: str,
-    clarifications: str = "", region: str = _DEFAULT_REGION,
+    clarifications: str = "", region: str = _DEFAULT_REGION, api_key: str = "",
 ) -> dict:
-    """Run the full board and return everything the UI needs as one dict."""
+    """Run the full board and return everything the UI needs as one dict.
+
+    If api_key is provided, use it instead of the server's default FIREWORKS_API_KEY.
+    """
     from . import retrieval  # local import avoids a circular dependency
 
     region = region if region in _REGIONS else _DEFAULT_REGION
@@ -89,7 +92,7 @@ async def diagnose(
     skipped = [n for n in SPECIALISTS if n not in names]
     opinions = await asyncio.gather(
         *(
-            llm.chat(specialist_prompt(name, region), grounded_case, agent_name=name)
+            llm.chat(specialist_prompt(name, region), grounded_case, agent_name=name, api_key=api_key)
             for name in names
         )
     )
@@ -109,7 +112,7 @@ async def diagnose(
             for item in specialist_opinions
         )
     )
-    synthesis = await llm.chat(synthesis_prompt(region), synthesis_input, agent_name="synthesis")
+    synthesis = await llm.chat(synthesis_prompt(region), synthesis_input, agent_name="synthesis", api_key=api_key)
 
     # Step 3: attach VERIFIED citations for the diagnoses the board concluded.
     diagnoses = knowledge.extract_diagnoses(synthesis)
