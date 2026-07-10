@@ -305,6 +305,34 @@ Ranked differential diagnosis:
 
 *Note: Accuracy improves as more cases are evaluated and specialist prompts are refined.*
 
+### Model choice: why we ship on base Gemma
+
+We built a full fine-tuning pipeline for AegisMed's synthesis agent — a LoRA
+adapter trained on Gemma-3-27B using real specialist opinions and
+teacher-distilled gold answers from held-out cases — and A/B-tested it
+against the base model. Both arms scored identically: 16/21 (76%) on our
+evaluation holdout, with exactly one case flipping in each direction.
+
+Rather than take an identical score at face value, we investigated what it
+could and couldn't tell us:
+- The "baseline" arm used a stand-in model rather than untuned
+  `gemma-3-27b-it` itself (unavailable on our account's serverless tier at
+  the time), so this was never a clean base-vs-tuned comparison.
+- The scoring metric counted a hit if the diagnosis appeared anywhere across
+  all 7 specialist opinions — identical in both arms — which diluted any
+  signal from the one agent that actually differed.
+- A 21-case holdout is too small to reliably distinguish a real modest
+  effect from noise.
+
+We chose to document these limitations rather than overclaim a result we
+can't rigorously support (full writeup in
+[`docs/FINETUNE_EVAL_REPORT.md`](FINETUNE_EVAL_REPORT.md)). AegisMed's
+deployed board runs on Gemma's base model. What the evaluation *does*
+support: the multi-agent architecture — grounded retrieval, parallel
+specialist fan-out, and structured synthesis — is what's carrying
+diagnostic accuracy, largely independent of which specific model writes the
+final synthesis.
+
 ---
 
 ## Roadmap: Next Phases
