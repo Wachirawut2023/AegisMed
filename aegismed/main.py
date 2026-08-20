@@ -38,6 +38,66 @@ app = FastAPI(
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
 
+class ReferenceLink(BaseModel):
+    label: str = Field(..., max_length=200)
+    url: str = Field(..., max_length=500)
+
+
+class DiagnosisReference(BaseModel):
+    diagnosis: str = Field(..., max_length=200)
+    links: list[ReferenceLink] = Field(default_factory=list, max_length=20)
+
+
+class EvidenceCandidate(BaseModel):
+    name: str = Field(..., max_length=200)
+    links: list[ReferenceLink] = Field(default_factory=list, max_length=20)
+
+
+class BoardEvidence(BaseModel):
+    phenotypes: list[str] = Field(default_factory=list, max_length=50)
+    candidates: list[EvidenceCandidate] = Field(default_factory=list, max_length=50)
+
+
+class BoardRouting(BaseModel):
+    selected_specialties: list[str] = Field(default_factory=list, max_length=50)
+    skipped_specialties: list[str] = Field(default_factory=list, max_length=50)
+    unavailable_specialties: list[str] = Field(default_factory=list, max_length=50)
+    total_specialties: int = 0
+
+
+class SpecialistOpinion(BaseModel):
+    specialty: str = Field(..., max_length=100)
+    opinion: str = Field(..., max_length=20000)
+
+
+class MatchSummary(BaseModel):
+    # Present only when saving a board_output produced by /api/teaching/case.
+    expected_diagnosis: str = Field(..., max_length=200)
+    found_in_top_3: bool
+    rank: int | None = None
+    is_rare: bool = False
+    board_top_3: list[str] = Field(default_factory=list, max_length=10)
+
+
+class BoardOutput(BaseModel):
+    """The shape orchestrator.diagnose() (and /api/teaching/case) actually
+    produces. A board_output supplied by the client must match this shape —
+    otherwise a fabricated or oversized blob could be persisted as if a real
+    board had produced it. See SaveCaseRequest.board_output.
+    """
+    disclaimer: str = Field(..., max_length=2000)
+    demo_mode: bool
+    demo_banner: str = Field(default="", max_length=2000)
+    region: str = Field(default="us", max_length=20)
+    evidence: BoardEvidence = Field(default_factory=BoardEvidence)
+    references: list[DiagnosisReference] = Field(default_factory=list, max_length=100)
+    guideline_references: list[DiagnosisReference] = Field(default_factory=list, max_length=100)
+    routing: BoardRouting = Field(default_factory=BoardRouting)
+    specialist_opinions: list[SpecialistOpinion] = Field(default_factory=list, max_length=20)
+    synthesis: str = Field(..., max_length=20000)
+    match_summary: MatchSummary | None = None
+
+
 class PatientCase(BaseModel):
     age: str = Field(default="", max_length=20)
     sex: str = Field(default="", max_length=20)
@@ -65,7 +125,9 @@ class SaveCaseRequest(PatientCase):
     # board again — this keeps the saved case identical to what the physician
     # reviewed on screen (the board is non-deterministic outside demo mode, so
     # re-running it could silently save a different result than was shown).
-    board_output: dict | None = Field(default=None)
+    # Validated against BoardOutput's shape so a client can't persist an
+    # arbitrary or fabricated blob as if a real board had produced it.
+    board_output: BoardOutput | None = Field(default=None)
 
 
 class CommentRequest(BaseModel):
@@ -256,14 +318,18 @@ async def save_case_result(req: SaveCaseRequest) -> dict:
     specialty). Returns a case_id for retrieval, printing, or team comments.
     """
     try:
-        board_output = req.board_output or await orchestrator.diagnose(
-            age=req.age,
-            sex=req.sex,
-            symptoms=req.symptoms,
-            history=req.history,
-            labs=req.labs,
-            clarifications=req.clarifications,
-            region=req.region,
+        board_output = (
+            req.board_output.model_dump()
+            if req.board_output is not None
+            else await orchestrator.diagnose(
+                age=req.age,
+                sex=req.sex,
+                symptoms=req.symptoms,
+                history=req.history,
+                labs=req.labs,
+                clarifications=req.clarifications,
+                region=req.region,
+            )
         )
 
         case_id = cases.save_case(

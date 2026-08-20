@@ -67,6 +67,8 @@ def test_save_case_with_precomputed_board_output_skips_rerun(monkeypatch, tmp_pa
 
     monkeypatch.setattr("aegismed.main.orchestrator.diagnose", _boom)
 
+    # Only the required fields are given here — the rest of BoardOutput's
+    # fields default to empty, proving a minimal-but-valid shape is accepted.
     precomputed = {"synthesis": "EXACT SYNTHESIS FROM SCREEN", "disclaimer": "d", "demo_mode": True, "region": "uk"}
     resp = client.post(
         "/api/cases/save",
@@ -74,8 +76,83 @@ def test_save_case_with_precomputed_board_output_skips_rerun(monkeypatch, tmp_pa
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["board_output"] == precomputed
     assert data["board_output"]["synthesis"] == "EXACT SYNTHESIS FROM SCREEN"
+    assert data["board_output"]["region"] == "uk"
+
+
+def test_save_case_accepts_real_diagnose_output_as_board_output(monkeypatch, tmp_path):
+    """A genuine /api/diagnose result must always satisfy BoardOutput's shape."""
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    diagnose_resp = client.post("/api/diagnose", json=VALID_CASE)
+    board_output = diagnose_resp.json()
+
+    save_resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": board_output, "submitted_by": "Dr. Test"},
+    )
+    assert save_resp.status_code == 200
+    assert save_resp.json()["board_output"]["synthesis"] == board_output["synthesis"]
+
+
+def test_save_case_accepts_teaching_case_output_with_match_summary(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    teaching_resp = client.post(
+        "/api/teaching/case",
+        json={**VALID_CASE, "expected_diagnosis": "Fabry disease"},
+    )
+    board_output = teaching_resp.json()
+
+    save_resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": board_output, "submitted_by": "Dr. Test"},
+    )
+    assert save_resp.status_code == 200
+    assert save_resp.json()["board_output"]["match_summary"]["expected_diagnosis"] == "Fabry disease"
+
+
+def test_save_case_rejects_board_output_missing_required_field(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {"demo_mode": True}  # no "synthesis", no "disclaimer"
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
+
+
+def test_save_case_rejects_board_output_with_wrong_field_types(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "1. Made up diagnosis",
+        "disclaimer": "d",
+        "demo_mode": True,
+        # specialist_opinions must be a list of {specialty, opinion} objects.
+        "specialist_opinions": ["not an opinion object"],
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
+
+
+def test_save_case_rejects_oversized_board_output_field(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "x" * 20001,  # over BoardOutput's max_length
+        "disclaimer": "d",
+        "demo_mode": True,
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
 
 
 def test_save_case_without_board_output_runs_the_board(monkeypatch, tmp_path):
