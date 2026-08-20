@@ -5,13 +5,15 @@ logic but never call the network. Case storage is monkeypatched to a temp
 file so tests never touch the real data/cases.jsonl.
 """
 
+import json
 import os
 
 os.environ["DEMO_MODE"] = "true"
 
 from fastapi.testclient import TestClient
 
-from aegismed import cases
+from aegismed import cases, llm
+from aegismed.demo_data import EXAMPLE_CASE
 from aegismed.main import app
 
 client = TestClient(app)
@@ -116,3 +118,129 @@ def test_health_reports_demo_mode():
     body = resp.json()
     assert body["status"] == "ok"
     assert body["demo_mode"] is True
+
+
+def test_home_serves_the_web_ui():
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "text/html" in resp.headers["content-type"]
+
+
+def test_example_case_returns_the_builtin_case():
+    resp = client.get("/api/example-case")
+    assert resp.status_code == 200
+    assert resp.json() == EXAMPLE_CASE
+
+
+def test_demo_cases_falls_back_to_example_when_file_missing(monkeypatch, tmp_path):
+    monkeypatch.setattr("aegismed.main.DEMO_CASES_FILE", tmp_path / "does-not-exist.json")
+
+    resp = client.get("/api/demo-cases")
+    assert resp.status_code == 200
+    assert resp.json() == [{"label": "Example: Fabry disease", **EXAMPLE_CASE, "expected_diagnosis": "Fabry disease"}]
+
+
+def test_demo_cases_reads_curated_file_when_present(monkeypatch, tmp_path):
+    demo_file = tmp_path / "demo_cases.json"
+    demo_file.write_text(
+        json.dumps([
+            {
+                "source": "RareBench",
+                "expected_diagnosis": "Pompe disease",
+                "age": "5", "sex": "female",
+                "symptoms": "muscle weakness", "history": "", "labs": "",
+            }
+        ]),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("aegismed.main.DEMO_CASES_FILE", demo_file)
+
+    resp = client.get("/api/demo-cases")
+    assert resp.status_code == 200
+    [case] = resp.json()
+    assert case["label"] == "RareBench: Pompe disease"
+    assert case["expected_diagnosis"] == "Pompe disease"
+    assert case["age"] == "5"
+
+
+def test_intake_endpoint_returns_questions_in_demo_mode():
+    resp = client.post("/api/intake", json=VALID_CASE)
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["demo_mode"] is True
+    assert "questions" in body
+
+
+def test_intake_endpoint_returns_502_on_llm_error(monkeypatch):
+    async def _boom(*args, **kwargs):
+        raise llm.LLMError("Fireworks is down")
+
+    monkeypatch.setattr("aegismed.main.intake.gather_questions", _boom)
+    resp = client.post("/api/intake", json=VALID_CASE)
+    assert resp.status_code == 502
+
+
+def test_diagnose_returns_502_on_llm_error(monkeypatch):
+    async def _boom(*args, **kwargs):
+        raise llm.LLMError("Fireworks is down")
+
+    monkeypatch.setattr("aegismed.main.orchestrator.diagnose", _boom)
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+    assert resp.status_code == 502
+
+
+def test_teaching_case_returns_502_on_llm_error(monkeypatch):
+    async def _boom(*args, **kwargs):
+        raise llm.LLMError("Fireworks is down")
+
+    monkeypatch.setattr("aegismed.main.orchestrator.diagnose", _boom)
+    resp = client.post(
+        "/api/teaching/case",
+        json={**VALID_CASE, "expected_diagnosis": "Fabry disease"},
+    )
+    assert resp.status_code == 502
+
+
+def test_save_case_returns_502_on_llm_error_when_no_board_output(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    async def _boom(*args, **kwargs):
+        raise llm.LLMError("Fireworks is down")
+
+    monkeypatch.setattr("aegismed.main.orchestrator.diagnose", _boom)
+    resp = client.post("/api/cases/save", json={**VALID_CASE, "submitted_by": "Dr. Test"})
+    assert resp.status_code == 502
+
+
+def test_list_cases_endpoint_returns_summaries(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    client.post("/api/cases/save", json={**VALID_CASE, "submitted_by": "Dr. A", "specialty": "Cardiology"})
+    client.post("/api/cases/save", json={**VALID_CASE, "submitted_by": "Dr. B", "specialty": "Neurology"})
+
+    resp = client.get("/api/cases")
+    assert resp.status_code == 200
+    summaries = resp.json()
+    assert len(summaries) == 2
+    assert {s["specialty"] for s in summaries} == {"Cardiology", "Neurology"}
+
+    filtered = client.get("/api/cases", params={"specialty": "Cardiology"})
+    assert len(filtered.json()) == 1
+    assert filtered.json()[0]["submitted_by"] == "Dr. A"
+
+
+def test_add_comment_success(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    save_resp = client.post("/api/cases/save", json={**VALID_CASE, "submitted_by": "Dr. Test"})
+    case_id = save_resp.json()["case_id"]
+
+    resp = client.post(
+        f"/api/cases/{case_id}/comment",
+        json={"author": "Dr. Reviewer", "text": "Agree with the differential."},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "comment added", "case_id": case_id}
+
+    entry = cases.load_case(case_id)
+    assert entry["team_comments"][0]["text"] == "Agree with the differential."
