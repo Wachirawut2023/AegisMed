@@ -86,9 +86,11 @@ in `firebase.json` and the `--region` flag below must match.
 ```bash
 PROJECT_ID=your-gcp-project \
 REGION=us-central1 \
-FIREWORKS_API_KEY=fw_your_key_here \
   ./scripts/deploy.sh
 ```
+
+No Fireworks API key is asked for or used — this deployment runs
+permanently in demo mode (see below), so there's no secret to provide.
 
 This runs two commands (see `scripts/deploy.sh` for the exact flags):
 
@@ -113,14 +115,15 @@ worst case:
   unboundedly.
 - **`RATE_LIMIT_PER_MINUTE`** (already in `aegismed/config.py`, default 20)
   throttles the expensive endpoints per client IP.
-- **`DEMO_MODE=auto`** (the default) means: if you don't set
-  `FIREWORKS_API_KEY`, every request returns the built-in canned board
-  output — a fully working, good-looking demo at **zero** per-request cost.
-  For a portfolio link specifically, consider deploying with **no**
-  `FIREWORKS_API_KEY` at all (leave it unset in the command above): visitors
-  get the identical polished demo case, and there's no per-token bill to
-  worry about, ever. Flip it on later if you want reviewers to try their
-  own cases against the real model.
+- **`DEMO_MODE=true`** — `scripts/deploy.sh` sets this explicitly (rather
+  than relying on `auto` + "just don't set a key") so the portfolio
+  deployment is unconditionally demo mode: every request returns the
+  built-in canned board output, a fully working, good-looking demo at
+  **zero** per-request cost, with no API key involved anywhere in the
+  deploy. If you ever want reviewers to try their own cases against the
+  real model, that's a deliberate later change — set `DEMO_MODE=false` and
+  add `FIREWORKS_API_KEY` to the Cloud Run service's env vars (ideally via
+  Secret Manager rather than a plain env var).
 - Set a **budget alert** as a backstop regardless: Cloud Console → Billing →
   Budgets & alerts → create a small budget (e.g. $5) with an email alert.
   Costs nothing itself and catches anything unexpected.
