@@ -365,8 +365,9 @@ DEMO_MODE=true uvicorn aegismed.main:app --port 8000
 
 ### Option B: Run Locally (Real Model)
 ```bash
-# Sign up at Fireworks AI, get API key
-echo "FIREWORKS_API_KEY=your_key_here" > .env
+# Authenticate once, and set your Google Cloud project
+gcloud auth application-default login
+echo "GOOGLE_CLOUD_PROJECT=your-gcp-project" > .env
 docker compose up --build
 # Open http://localhost:8000
 ```
@@ -375,7 +376,7 @@ docker compose up --build
 ```bash
 # Install Docker on hospital instance
 docker compose up -d
-# Add .env with FIREWORKS_API_KEY (or DEMO_MODE=true)
+# Add .env with GOOGLE_CLOUD_PROJECT (or DEMO_MODE=true)
 # AegisMed now available at http://hospital_ip:8000
 # Clinicians can submit cases via web UI or API
 ```

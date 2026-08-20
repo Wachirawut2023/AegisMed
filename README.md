@@ -44,7 +44,7 @@ flowchart LR
 ```bash
 git clone https://github.com/wachirawut2023/AegisMed.git
 cd AegisMed
-cp .env.example .env        # optional: add your Fireworks API key to .env
+cp .env.example .env        # optional: add your Google Cloud project to .env
 docker compose up --build
 ```
 
@@ -63,13 +63,31 @@ uvicorn aegismed.main:app --port 8000
 
 Open **http://localhost:8000**.
 
+### Live portfolio demo
+
+The public demo link runs entirely on **Google Cloud**: **Firebase Hosting**
+(frontend) + **Cloud Run** (backend, `min-instances=0`) + **Vertex AI**
+(Gemini, for inference). It costs nothing while idle and wakes up
+automatically when someone opens the link — no API key involved anywhere,
+since Cloud Run authenticates to Vertex AI with its own attached service
+account. This is a post-hackathon deployment, added to keep the project
+usable as a portfolio piece without an always-on server bill — see
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for the full setup and
+`./scripts/deploy.sh` to redeploy.
+
 ### Demo mode vs. real AI
 
-With **no API key**, AegisMed runs in **demo mode**: the built-in example case returns realistic pre-written board output so you can explore the full experience at zero cost. To enable the real AI agents, put your [Fireworks AI](https://fireworks.ai) API key in `.env`:
+With **no Google Cloud project configured**, AegisMed runs in **demo
+mode**: the built-in example case returns realistic pre-written board
+output so you can explore the full experience at zero cost. To enable the
+real AI agents (Vertex AI's Gemini API), set your project in `.env`:
 
 ```
-FIREWORKS_API_KEY=fw_your_key_here
+GOOGLE_CLOUD_PROJECT=your-gcp-project
 ```
+
+and authenticate once with `gcloud auth application-default login` — no API
+key to generate or store.
 
 ## Evaluation
 
@@ -78,8 +96,8 @@ AegisMed is tested against **real, publicly-licensed rare-disease cases** (from
 [CUPCase](https://huggingface.co/datasets/ofir408/CupCase), both Apache-2.0). Two steps:
 
 ```bash
-python data/build_dataset.py   # download + convert public cases (no API key needed)
-python eval/run_eval.py        # score AegisMed against them (needs your Fireworks key)
+python data/build_dataset.py   # download + convert public cases (no credentials needed)
+python eval/run_eval.py        # score AegisMed against them (needs GOOGLE_CLOUD_PROJECT + gcloud auth)
 ```
 
 This produces a headline number — *"the correct diagnosis was surfaced in X% of
@@ -93,16 +111,26 @@ All settings live in `.env` (see `.env.example`):
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `FIREWORKS_API_KEY` | *(empty)* | Your Fireworks AI key ($50 free via the AMD AI Developer Program) |
-| `MODEL` | `accounts/fireworks/models/gemma-3-27b-it` | Which model powers the agents |
+| `GOOGLE_CLOUD_PROJECT` | *(empty)* | Your GCP project ID — Vertex AI calls are billed here. No API key: uses Application Default Credentials |
+| `GOOGLE_CLOUD_LOCATION` | `us-central1` | Which region to call Vertex AI in |
+| `VERTEX_MODEL` | `gemini-2.5-flash` | Which model powers the agents |
 | `DEMO_MODE` | `auto` | `auto` / `true` / `false` — sample output vs. real AI |
 | `RATE_LIMIT_PER_MINUTE` | `20` | Max requests per client IP per minute on the board/case endpoints (`0` disables) |
 | `MAX_REQUEST_BODY_BYTES` | `10485760` (10 MB) | Largest request body accepted, checked before any JSON parsing |
 
 ## Tech stack
 
+**Hackathon submission (original build):**
 - **Google Gemma** (open-weight LLM) served by **Fireworks AI** on **AMD hardware**
 - **AMD Developer Cloud** for hosting/deployment
+
+**Live portfolio deployment (current):**
+- **Google Gemini**, served by **Vertex AI** — no API key, authenticates via
+  the deployment's own Google Cloud identity
+- **Cloud Run** (`min-instances=0`) + **Firebase Hosting** — scale-to-zero,
+  $0 while idle; see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+
+**Constant either way:**
 - **Python 3.11 + FastAPI** backend, single-page vanilla HTML/JS frontend
 - **Docker** for one-command, reproducible runs
 

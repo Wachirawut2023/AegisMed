@@ -1,16 +1,21 @@
 """Unit tests for the LLM client layer (aegismed/llm.py).
 
 Demo mode is deterministic and network-free (already touched indirectly by
-other test files); the real Fireworks HTTP path is exercised here with a
+other test files); the real Vertex AI HTTP path is exercised here with a
 scripted fake `httpx.AsyncClient` so no test ever makes a real network call.
+Application Default Credentials lookup is stubbed out the same way — tests
+never need real Google Cloud credentials.
 """
 
+import google.auth.exceptions
 import httpx
 import pytest
 
-from aegismed import demo_data, llm
+from aegismed import config, demo_data, llm
 
 pytestmark = pytest.mark.anyio
+
+_VERTEX_URL = "https://us-central1-aiplatform.googleapis.com/v1/projects/test-project/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent"
 
 
 @pytest.fixture(autouse=True)
@@ -20,6 +25,17 @@ def _no_real_sleep(monkeypatch):
         return None
 
     monkeypatch.setattr(llm.asyncio, "sleep", instant_sleep)
+
+
+@pytest.fixture(autouse=True)
+def _stub_credentials(monkeypatch):
+    """Every non-demo test needs a project configured and a fake access
+    token — neither should ever touch real ADC lookup or the network.
+    """
+    monkeypatch.setattr(config, "GOOGLE_CLOUD_PROJECT", "test-project")
+    monkeypatch.setattr(config, "GOOGLE_CLOUD_LOCATION", "us-central1")
+    monkeypatch.setattr(config, "VERTEX_MODEL", "gemini-2.5-flash")
+    monkeypatch.setattr(llm, "_get_access_token", lambda: "fake-access-token")
 
 
 class _ScriptedAsyncClient:
@@ -61,8 +77,12 @@ def _patch_client(monkeypatch, **kwargs) -> _ScriptedAsyncClient:
 
 
 def _response(status: int, **kwargs) -> httpx.Response:
-    request = httpx.Request("POST", "https://api.fireworks.ai/inference/v1/chat/completions")
+    request = httpx.Request("POST", _VERTEX_URL)
     return httpx.Response(status, request=request, **kwargs)
+
+
+def _gemini_body(text: str) -> dict:
+    return {"candidates": [{"content": {"parts": [{"text": text}]}}]}
 
 
 # --- demo mode --------------------------------------------------------------
@@ -92,15 +112,14 @@ async def test_chat_demo_mode_unknown_agent_falls_back(monkeypatch):
     assert text == "Demo mode: no sample answer available for this agent."
 
 
-# --- real Fireworks call path -----------------------------------------------
+# --- real Vertex AI call path -------------------------------------------------
 
 
-async def test_chat_real_success_sends_messages_and_strips_reply(monkeypatch):
-    request = httpx.Request("POST", "https://api.fireworks.ai/inference/v1/chat/completions")
+async def test_chat_real_success_sends_contents_and_strips_reply(monkeypatch):
     response = httpx.Response(
         200,
-        request=request,
-        json={"choices": [{"message": {"content": "  Likely Fabry disease.  "}}]},
+        request=httpx.Request("POST", _VERTEX_URL),
+        json=_gemini_body("  Likely Fabry disease.  "),
     )
     fake_client = _patch_client(monkeypatch, response=response)
     monkeypatch.setenv("DEMO_MODE", "false")
@@ -109,11 +128,11 @@ async def test_chat_real_success_sends_messages_and_strips_reply(monkeypatch):
 
     assert result == "Likely Fabry disease."
     assert len(fake_client.calls) == 1
-    sent = fake_client.calls[0]["json"]
-    assert sent["messages"] == [
-        {"role": "system", "content": "system prompt"},
-        {"role": "user", "content": "user prompt"},
-    ]
+    call = fake_client.calls[0]
+    assert call["url"] == _VERTEX_URL
+    assert call["json"]["contents"] == [{"role": "user", "parts": [{"text": "user prompt"}]}]
+    assert call["json"]["systemInstruction"] == {"parts": [{"text": "system prompt"}]}
+    assert call["headers"]["Authorization"] == "Bearer fake-access-token"
 
 
 async def test_chat_http_status_error_raises_llmerror_with_status_code(monkeypatch):
@@ -131,17 +150,28 @@ async def test_chat_network_error_raises_llmerror(monkeypatch):
     fake_client = _patch_client(monkeypatch, exc=httpx.ConnectError("connection refused"))
     monkeypatch.setenv("DEMO_MODE", "false")
 
-    with pytest.raises(llm.LLMError, match="Could not reach Fireworks AI"):
+    with pytest.raises(llm.LLMError, match="Could not reach Vertex AI"):
         await llm.chat("system", "user")
 
     assert len(fake_client.calls) == llm._MAX_ATTEMPTS
+
+
+async def test_chat_credentials_error_raises_llmerror(monkeypatch):
+    def _boom():
+        raise google.auth.exceptions.DefaultCredentialsError("no ADC found")
+
+    monkeypatch.setattr(llm, "_get_access_token", _boom)
+    monkeypatch.setenv("DEMO_MODE", "false")
+
+    with pytest.raises(llm.LLMError, match="Could not get Google Cloud credentials"):
+        await llm.chat("system", "user")
 
 
 # --- retry / backoff ----------------------------------------------------------
 
 
 async def test_chat_retries_server_error_then_succeeds(monkeypatch):
-    ok = _response(200, json={"choices": [{"message": {"content": "Fabry disease."}}]})
+    ok = _response(200, json=_gemini_body("Fabry disease."))
     fake_client = _patch_client(monkeypatch, sequence=[_response(503, text="busy"), ok])
     monkeypatch.setenv("DEMO_MODE", "false")
 
@@ -152,7 +182,7 @@ async def test_chat_retries_server_error_then_succeeds(monkeypatch):
 
 
 async def test_chat_retries_network_error_then_succeeds(monkeypatch):
-    ok = _response(200, json={"choices": [{"message": {"content": "ok"}}]})
+    ok = _response(200, json=_gemini_body("ok"))
     fake_client = _patch_client(
         monkeypatch, sequence=[httpx.ConnectError("connection refused"), ok]
     )
@@ -165,7 +195,7 @@ async def test_chat_retries_network_error_then_succeeds(monkeypatch):
 
 
 async def test_chat_does_not_retry_client_error(monkeypatch):
-    fake_client = _patch_client(monkeypatch, response=_response(401, text="bad key"))
+    fake_client = _patch_client(monkeypatch, response=_response(401, text="bad token"))
     monkeypatch.setenv("DEMO_MODE", "false")
 
     with pytest.raises(llm.LLMError, match="401"):

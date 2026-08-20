@@ -201,7 +201,7 @@ async def health() -> dict:
         "status": "ok",
         "version": __version__,
         "demo_mode": config.demo_mode(),
-        "model": config.MODEL,
+        "model": config.VERTEX_MODEL,
         "knowledge_base_diseases": knowledge.kb_size(),
     }
 

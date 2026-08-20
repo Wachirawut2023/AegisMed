@@ -1,5 +1,13 @@
 # Run AegisMed with one command:  docker compose up --build
 # Make sure you created your .env file first:  cp .env.example .env
+#
+# With no .env / no GOOGLE_CLOUD_PROJECT set, this runs in demo mode — no
+# Google Cloud credentials needed. To exercise the real Vertex AI agents
+# from inside this container, mount your Application Default Credentials
+# (created by `gcloud auth application-default login` on the host) by
+# uncommenting the `volumes:` line below — or just run
+# `uvicorn aegismed.main:app --port 8000` directly on the host instead,
+# which already sees your host ADC with no mount needed.
 services:
   aegismed:
     build: .
@@ -8,3 +16,5 @@ services:
     env_file:
       - path: .env
         required: false   # runs in demo mode if you have no .env yet
+    # volumes:
+    #   - ${HOME}/.config/gcloud:/home/aegismed/.config/gcloud:ro

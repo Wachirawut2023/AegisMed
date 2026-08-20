@@ -20,7 +20,7 @@ That sentence is far more convincing than "it seems to work well."
 ```
 Step 1: BUILD the data        Step 2: SCORE with the AI
 python data/build_dataset.py  →  python eval/run_eval.py
-(no API key needed)              (needs your Fireworks API key)
+(no credentials needed)          (needs Google Cloud credentials)
 ```
 
 ### Step 1 — Build the dataset (free, no API key)
@@ -54,9 +54,10 @@ There are two *styles* of case, which makes your evaluation stronger:
   Seizure; Hypotonia; ..."*
 - **narrative** (from CUPCase) — a real doctor's write-up in plain prose.
 
-### Step 2 — Score AegisMed (needs the API key)
+### Step 2 — Score AegisMed (needs Google Cloud credentials)
 
-First put your Fireworks key in `.env` (see `.env.example`), then:
+First set `GOOGLE_CLOUD_PROJECT` in `.env` (see `.env.example`) and run
+`gcloud auth application-default login` once, then:
 
 ```bash
 python eval/run_eval.py            # score every case

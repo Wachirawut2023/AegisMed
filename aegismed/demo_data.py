@@ -1,14 +1,15 @@
 """Canned sample output for demo mode.
 
-Demo mode lets you run and show AegisMed with NO API key and at zero cost.
-The answers below were written by hand for the built-in example case
-(a classic, frequently missed presentation of Fabry disease) so the app
-looks and behaves exactly as it will with the real AI connected.
+Demo mode lets you run and show AegisMed with NO Google Cloud project
+configured and at zero cost. The answers below were written by hand for the
+built-in example case (a classic, frequently missed presentation of Fabry
+disease) so the app looks and behaves exactly as it will with the real AI
+connected.
 """
 
 DEMO_BANNER = (
     "DEMO MODE — this is pre-written sample output, not a live AI response. "
-    "Add your Fireworks API key to .env to enable the real specialist agents."
+    "Set GOOGLE_CLOUD_PROJECT in .env to enable the real specialist agents."
 )
 
 # Canned intake questions for demo mode (the real intake agent tailors these to

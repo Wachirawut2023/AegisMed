@@ -1,7 +1,7 @@
 """Configuration — reads settings from the .env file (or real environment variables).
 
 Nothing here is AI-specific: it just answers three questions for the rest of the app:
-  1. What is the Fireworks API key (if any)?
+  1. Which Google Cloud project/region should we call Vertex AI in (if any)?
   2. Which model should we ask for?
   3. Are we in demo mode (canned sample answers, no API calls, zero cost)?
 """
@@ -13,13 +13,31 @@ from dotenv import load_dotenv
 # Read the .env file in the project folder, if it exists.
 load_dotenv()
 
-FIREWORKS_API_KEY: str = os.getenv("FIREWORKS_API_KEY", "").strip()
+# The GCP project Vertex AI calls are billed to. No API key: aegismed/llm.py
+# authenticates with Application Default Credentials — the Cloud Run
+# service's attached service account when deployed, or
+# `gcloud auth application-default login` locally.
+GOOGLE_CLOUD_PROJECT: str = os.getenv("GOOGLE_CLOUD_PROJECT", "").strip()
+GOOGLE_CLOUD_LOCATION: str = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1").strip()
 
-# Google's Gemma model hosted on Fireworks AI (running on AMD hardware).
-# Swap via the MODEL variable in .env once launch-day models are confirmed.
-MODEL: str = os.getenv("MODEL", "accounts/fireworks/models/gemma-3-27b-it").strip()
+# Google's Gemini model, served by Vertex AI. Swap via VERTEX_MODEL in .env —
+# check the Vertex AI Model Garden / docs for the current model IDs available
+# in your region.
+VERTEX_MODEL: str = os.getenv("VERTEX_MODEL", "gemini-2.5-flash").strip()
 
-FIREWORKS_API_URL: str = "https://api.fireworks.ai/inference/v1/chat/completions"
+_VERTEX_API_URL_TEMPLATE = (
+    "https://{location}-aiplatform.googleapis.com/v1/projects/{project}"
+    "/locations/{location}/publishers/google/models/{model}:generateContent"
+)
+
+
+def vertex_api_url() -> str:
+    """The Vertex AI generateContent endpoint for the configured project/model."""
+    return _VERTEX_API_URL_TEMPLATE.format(
+        location=GOOGLE_CLOUD_LOCATION,
+        project=GOOGLE_CLOUD_PROJECT,
+        model=VERTEX_MODEL,
+    )
 
 
 def demo_mode() -> bool:
@@ -27,14 +45,15 @@ def demo_mode() -> bool:
 
     DEMO_MODE=true  -> always demo
     DEMO_MODE=false -> always real AI
-    DEMO_MODE=auto  -> demo only when no API key is configured (the default)
+    DEMO_MODE=auto  -> demo only when no GOOGLE_CLOUD_PROJECT is configured
+                       (the default)
     """
     setting = os.getenv("DEMO_MODE", "auto").strip().lower()
     if setting == "true":
         return True
     if setting == "false":
         return False
-    return not FIREWORKS_API_KEY
+    return not GOOGLE_CLOUD_PROJECT
 
 
 def specialist_selection() -> str:
