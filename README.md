@@ -63,6 +63,15 @@ uvicorn aegismed.main:app --port 8000
 
 Open **http://localhost:8000**.
 
+### Live portfolio demo
+
+The public demo link runs on **Firebase Hosting** (frontend) + **Google
+Cloud Run** (backend, `min-instances=0`), so it costs nothing while idle and
+wakes up automatically when someone opens the link. This is a post-hackathon
+deployment, added to keep the project usable as a portfolio piece without an
+always-on server bill — see [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) for
+the full setup and `./scripts/deploy.sh` to redeploy.
+
 ### Demo mode vs. real AI
 
 With **no API key**, AegisMed runs in **demo mode**: the built-in example case returns realistic pre-written board output so you can explore the full experience at zero cost. To enable the real AI agents, put your [Fireworks AI](https://fireworks.ai) API key in `.env`:
