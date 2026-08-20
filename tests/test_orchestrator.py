@@ -5,9 +5,11 @@ directly. diagnose() is exercised end-to-end in demo mode (no network) to
 verify the smart-routing wiring surfaced in the "routing" field.
 """
 
+import json
+
 import pytest
 
-from aegismed import orchestrator
+from aegismed import llm, orchestrator
 from aegismed.specialists import SPECIALISTS
 
 pytestmark = pytest.mark.anyio
@@ -104,3 +106,66 @@ async def test_diagnose_invalid_region_falls_back_to_us(monkeypatch):
         history="", labs="", region="not-a-region",
     )
     assert result["region"] == "us"
+
+
+# --- diagnose() partial specialist failure -----------------------------------------
+
+
+async def test_diagnose_survives_one_failed_specialist(monkeypatch):
+    """One specialist erroring out must not sink the whole board."""
+    monkeypatch.setenv("DEMO_MODE", "false")
+    monkeypatch.setenv("SPECIALIST_SELECTION", "relevant")
+
+    synthesis_inputs = []
+
+    async def fake_chat(system_prompt, user_prompt, agent_name=""):
+        if agent_name == "retrieval":
+            return json.dumps({
+                "key_phenotypes": [],
+                "candidate_diseases": [],
+                "relevant_specialties": ["Cardiology", "Neurology"],
+            })
+        if agent_name == "Cardiology":
+            raise llm.LLMError("simulated timeout")
+        if agent_name == "synthesis":
+            synthesis_inputs.append(user_prompt)
+            return "1. Some Diagnosis [RARE]"
+        return f"{agent_name} opinion text"
+
+    monkeypatch.setattr(llm, "chat", fake_chat)
+
+    result = await orchestrator.diagnose(
+        age="24", sex="male", symptoms="chest pain and numbness",
+        history="", labs="",
+    )
+
+    routing = result["routing"]
+    assert routing["unavailable_specialties"] == ["Cardiology"]
+    assert "Cardiology" in routing["selected_specialties"]
+
+    failed = next(o for o in result["specialist_opinions"] if o["specialty"] == "Cardiology")
+    assert "did not respond" in failed["opinion"]
+    working = next(o for o in result["specialist_opinions"] if o["specialty"] == "Neurology")
+    assert working["opinion"] == "Neurology opinion text"
+
+    # The failed specialist must not appear in what the synthesis agent saw.
+    assert "Cardiology" not in synthesis_inputs[0]
+    assert result["synthesis"] == "1. Some Diagnosis [RARE]"
+
+
+async def test_diagnose_raises_when_every_specialist_fails(monkeypatch):
+    monkeypatch.setenv("DEMO_MODE", "false")
+    monkeypatch.setenv("SPECIALIST_SELECTION", "all")
+
+    async def fake_chat(system_prompt, user_prompt, agent_name=""):
+        if agent_name == "retrieval":
+            return json.dumps({"key_phenotypes": [], "candidate_diseases": [], "relevant_specialties": []})
+        raise llm.LLMError("simulated outage")
+
+    monkeypatch.setattr(llm, "chat", fake_chat)
+
+    with pytest.raises(llm.LLMError):
+        await orchestrator.diagnose(
+            age="24", sex="male", symptoms="chest pain and numbness",
+            history="", labs="",
+        )
