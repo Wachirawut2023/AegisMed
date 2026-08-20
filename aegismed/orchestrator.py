@@ -85,28 +85,46 @@ async def diagnose(
     grounded_case = case_text + ("\n\n" + evidence["dossier"] if evidence["dossier"] else "")
 
     # Step 1: convene only the relevant specialists (smart routing), in parallel.
+    # One specialist erroring out (timeout, rate limit) must not sink the whole
+    # board when the others already came back with real opinions worth paying
+    # for — so we collect exceptions instead of letting gather() raise on the
+    # first one, and only fail the request if EVERY specialist came back empty.
     names = _select_specialists(evidence.get("relevant_specialties", []))
     skipped = [n for n in SPECIALISTS if n not in names]
-    opinions = await asyncio.gather(
+    results = await asyncio.gather(
         *(
             llm.chat(specialist_prompt(name, region), grounded_case, agent_name=name)
             for name in names
-        )
+        ),
+        return_exceptions=True,
     )
-    specialist_opinions = [
-        {"specialty": name, "opinion": text}
-        for name, text in zip(names, opinions)
-    ]
+    specialist_opinions = []
+    unavailable = []
+    for name, result in zip(names, results):
+        if isinstance(result, Exception):
+            unavailable.append(name)
+            specialist_opinions.append({
+                "specialty": name,
+                "opinion": f"[{name} did not respond and was excluded from this board's synthesis: {result}]",
+            })
+        else:
+            specialist_opinions.append({"specialty": name, "opinion": result})
+
+    if len(unavailable) == len(names):
+        raise llm.LLMError("Every specialist failed to respond; the board could not be convened.")
 
     # Step 2: the board chair merges the specialists' opinions into one briefing.
-    # The roster is passed in so the chair adapts if specialties are added/removed.
+    # The roster reflects who actually answered, so the chair doesn't mistake
+    # a dropped specialist's absence for a deliberate "nothing in my domain".
+    answered = [n for n in names if n not in unavailable]
     synthesis_input = (
         grounded_case
-        + f"\nBOARD ROSTER: {', '.join(names)}\n"
+        + f"\nBOARD ROSTER: {', '.join(answered)}\n"
         + "\nSPECIALIST OPINIONS\n\n"
         + "\n\n".join(
             f"--- {item['specialty']} ---\n{item['opinion']}"
             for item in specialist_opinions
+            if item["specialty"] not in unavailable
         )
     )
     synthesis = await llm.chat(synthesis_prompt(region), synthesis_input, agent_name="synthesis")
@@ -127,6 +145,7 @@ async def diagnose(
         "routing": {
             "selected_specialties": names,
             "skipped_specialties": skipped,
+            "unavailable_specialties": unavailable,
             "total_specialties": len(SPECIALISTS),
         },
         "specialist_opinions": specialist_opinions,

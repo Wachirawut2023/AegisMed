@@ -460,8 +460,20 @@ function escapeHtml(t) {
   return (t || "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
 }
 
+// The backend rejects non-http(s) URLs (see ReferenceLink in aegismed/main.py),
+// but this is the actual <a href> sink — check here too rather than trust that
+// every caller went through that validation, since a javascript: URL here is a
+// one-click stored XSS for whoever opens the saved case.
+function isSafeUrl(url) {
+  try {
+    return ["http:", "https:"].includes(new URL(url, location.href).protocol);
+  } catch {
+    return false;
+  }
+}
+
 function linkList(links) {
-  return (links || []).map(l =>
+  return (links || []).filter(l => isSafeUrl(l.url)).map(l =>
     `<a href="${encodeURI(l.url)}" target="_blank" rel="noopener" style="color:var(--accent);">${escapeHtml(l.label)}</a>`
   ).join(" · ");
 }

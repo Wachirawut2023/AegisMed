@@ -46,3 +46,34 @@ def specialist_selection() -> str:
     """
     setting = os.getenv("SPECIALIST_SELECTION", "relevant").strip().lower()
     return "all" if setting == "all" else "relevant"
+
+
+def rate_limit_per_minute() -> int:
+    """Max requests per client IP per minute on the costly/mutating endpoints.
+
+    RATE_LIMIT_PER_MINUTE=0 disables rate limiting entirely (e.g. local dev).
+    """
+    raw = os.getenv("RATE_LIMIT_PER_MINUTE", "20").strip()
+    try:
+        return int(raw)
+    except ValueError:
+        return 20
+
+
+_DEFAULT_MAX_BODY_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def max_request_body_bytes() -> int:
+    """Max raw request body size in bytes, rejected before any JSON parsing.
+
+    Pydantic's per-field max_length only applies AFTER Starlette has already
+    read the whole body into memory, so it can't stop an oversized body from
+    being buffered in the first place. This is checked earlier, by
+    aegismed.bodylimit's ASGI middleware.
+    """
+    raw = os.getenv("MAX_REQUEST_BODY_BYTES", str(_DEFAULT_MAX_BODY_BYTES)).strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        return _DEFAULT_MAX_BODY_BYTES
+    return value if value > 0 else _DEFAULT_MAX_BODY_BYTES

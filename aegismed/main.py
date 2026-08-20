@@ -9,13 +9,17 @@ Routes:
 
 import json
 from pathlib import Path
+from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from . import __version__, cases, config, intake, knowledge, llm, orchestrator
+from . import __version__, cases, config, intake, knowledge, llm, orchestrator, ratelimit
+from .bodylimit import MaxBodySizeMiddleware
 from .demo_data import EXAMPLE_CASE
+
+_ALLOWED_URL_SCHEMES = {"http", "https"}
 
 TAGS_METADATA = [
     {"name": "diagnosis", "description": "The core board: intake questions and the full diagnostic run."},
@@ -35,7 +39,112 @@ app = FastAPI(
     openapi_tags=TAGS_METADATA,
 )
 
+
+app.add_middleware(MaxBodySizeMiddleware)
+
+
+@app.middleware("http")
+async def _add_security_headers(request: Request, call_next):
+    """A handful of standard defense-in-depth headers on every response.
+
+    Starlette's add_middleware() PREPENDS to the middleware list (each new
+    entry becomes the new outermost layer), so registering this AFTER
+    MaxBodySizeMiddleware above puts it outside — these headers land even on
+    a 413 body-too-large rejection, not just normal responses.
+    script-src/style-src need 'unsafe-inline' because static/index.html is a
+    single inline <script>/<style> page with no nonce/hash build step;
+    everything rendered from user/LLM text there already goes through
+    escapeHtml()/renderText() (see the XSS fix in ReferenceLink).
+    """
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    return response
+
+
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+class ReferenceLink(BaseModel):
+    label: str = Field(..., max_length=200)
+    url: str = Field(..., max_length=500)
+
+    @field_validator("url")
+    @classmethod
+    def _require_http_scheme(cls, value: str) -> str:
+        # This renders as a clickable <a href> for other clinicians
+        # (static/index.html's linkList()) — a javascript:/data: scheme here
+        # would be a stored XSS the moment someone clicks it. Only http(s).
+        scheme = urlparse(value).scheme.lower()
+        if scheme not in _ALLOWED_URL_SCHEMES:
+            raise ValueError(f"url must be http:// or https://, got scheme {scheme!r}")
+        return value
+
+
+class DiagnosisReference(BaseModel):
+    diagnosis: str = Field(..., max_length=200)
+    links: list[ReferenceLink] = Field(default_factory=list, max_length=20)
+
+
+class EvidenceCandidate(BaseModel):
+    name: str = Field(..., max_length=200)
+    links: list[ReferenceLink] = Field(default_factory=list, max_length=20)
+
+
+class BoardEvidence(BaseModel):
+    phenotypes: list[str] = Field(default_factory=list, max_length=50)
+    candidates: list[EvidenceCandidate] = Field(default_factory=list, max_length=50)
+
+
+class BoardRouting(BaseModel):
+    selected_specialties: list[str] = Field(default_factory=list, max_length=50)
+    skipped_specialties: list[str] = Field(default_factory=list, max_length=50)
+    unavailable_specialties: list[str] = Field(default_factory=list, max_length=50)
+    total_specialties: int = 0
+
+
+class SpecialistOpinion(BaseModel):
+    specialty: str = Field(..., max_length=100)
+    opinion: str = Field(..., max_length=20000)
+
+
+class MatchSummary(BaseModel):
+    # Present only when saving a board_output produced by /api/teaching/case.
+    expected_diagnosis: str = Field(..., max_length=200)
+    found_in_top_3: bool
+    rank: int | None = None
+    is_rare: bool = False
+    board_top_3: list[str] = Field(default_factory=list, max_length=10)
+
+
+class BoardOutput(BaseModel):
+    """The shape orchestrator.diagnose() (and /api/teaching/case) actually
+    produces. A board_output supplied by the client must match this shape —
+    otherwise a fabricated or oversized blob could be persisted as if a real
+    board had produced it. See SaveCaseRequest.board_output.
+    """
+    disclaimer: str = Field(..., max_length=2000)
+    demo_mode: bool
+    demo_banner: str = Field(default="", max_length=2000)
+    region: str = Field(default="us", max_length=20)
+    evidence: BoardEvidence = Field(default_factory=BoardEvidence)
+    references: list[DiagnosisReference] = Field(default_factory=list, max_length=100)
+    guideline_references: list[DiagnosisReference] = Field(default_factory=list, max_length=100)
+    routing: BoardRouting = Field(default_factory=BoardRouting)
+    specialist_opinions: list[SpecialistOpinion] = Field(default_factory=list, max_length=20)
+    synthesis: str = Field(..., max_length=20000)
+    match_summary: MatchSummary | None = None
 
 
 class PatientCase(BaseModel):
@@ -65,7 +174,9 @@ class SaveCaseRequest(PatientCase):
     # board again — this keeps the saved case identical to what the physician
     # reviewed on screen (the board is non-deterministic outside demo mode, so
     # re-running it could silently save a different result than was shown).
-    board_output: dict | None = Field(default=None)
+    # Validated against BoardOutput's shape so a client can't persist an
+    # arbitrary or fabricated blob as if a real board had produced it.
+    board_output: BoardOutput | None = Field(default=None)
 
 
 class CommentRequest(BaseModel):
@@ -144,6 +255,7 @@ async def demo_cases() -> list[dict]:
     tags=["diagnosis"],
     summary="Intake: ask for missing details",
     description="Runs one quick model call that returns high-value clarifying questions (or none). Optional — you may skip straight to /api/diagnose.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def intake_questions(case: PatientCase) -> dict:
     """Intake step: ask the physician for missing high-value details, if any.
@@ -169,6 +281,7 @@ async def intake_questions(case: PatientCase) -> dict:
     tags=["diagnosis"],
     summary="Convene the board",
     description="Runs the full diagnostic board and returns the ranked differential, specialist opinions, verified citations, and clinical-guideline search links.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def diagnose(case: PatientCase) -> dict:
     try:
@@ -190,6 +303,7 @@ async def diagnose(case: PatientCase) -> dict:
     tags=["diagnosis"],
     summary="Teaching case evaluation",
     description="Runs the diagnostic board and compares the board's top diagnoses against an expected (correct) diagnosis. Returns the full board output plus match metrics for classroom or teaching scenarios.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def teaching_case(case: TeachingCase) -> dict:
     """Teaching mode: run the board and compare against an expected diagnosis.
@@ -246,6 +360,7 @@ async def teaching_case(case: TeachingCase) -> dict:
     tags=["team"],
     summary="Save a case for later review",
     description="Saves the result of a board run with optional metadata. Returns a case_id for later retrieval and team discussion.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def save_case_result(req: SaveCaseRequest) -> dict:
     """Save a completed board result for case-conference follow-up or team review.
@@ -256,14 +371,18 @@ async def save_case_result(req: SaveCaseRequest) -> dict:
     specialty). Returns a case_id for retrieval, printing, or team comments.
     """
     try:
-        board_output = req.board_output or await orchestrator.diagnose(
-            age=req.age,
-            sex=req.sex,
-            symptoms=req.symptoms,
-            history=req.history,
-            labs=req.labs,
-            clarifications=req.clarifications,
-            region=req.region,
+        board_output = (
+            req.board_output.model_dump()
+            if req.board_output is not None
+            else await orchestrator.diagnose(
+                age=req.age,
+                sex=req.sex,
+                symptoms=req.symptoms,
+                history=req.history,
+                labs=req.labs,
+                clarifications=req.clarifications,
+                region=req.region,
+            )
         )
 
         case_id = cases.save_case(
@@ -318,6 +437,7 @@ async def list_cases_endpoint(specialty: str = "", limit: int = 50) -> list[dict
     tags=["team"],
     summary="Add a team comment to a case",
     description="Appends a timestamped comment from a team member to a case for case-conference discussion.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def add_comment(case_id: str, comment: CommentRequest) -> dict:
     """Append a team comment to a saved case.

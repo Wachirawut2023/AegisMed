@@ -4,6 +4,9 @@ Every test monkeypatches CASES_FILE to a tmp_path file so the real
 data/cases.jsonl is never read or written.
 """
 
+import json
+from concurrent.futures import ThreadPoolExecutor
+
 from aegismed import cases
 
 
@@ -107,6 +110,56 @@ def test_append_comment_appends_timestamped_entry(monkeypatch, tmp_path):
     assert [c["text"] for c in entry["team_comments"]] == ["first", "second"]
     assert entry["team_comments"][0]["author"] == "Dr. A"
     assert all(c["timestamp"] for c in entry["team_comments"])
+
+
+# --- concurrency safety -------------------------------------------------------------
+#
+# append_comment does a read-modify-write of the whole file; save_case appends a
+# line that can exceed PIPE_BUF. Real OS threads (unlike asyncio tasks) can be
+# preempted mid-syscall, so these exercise the file lock with genuine concurrent
+# writers rather than just asserting it was called.
+
+
+def test_append_comment_survives_concurrent_writers(monkeypatch, tmp_path):
+    path = _use_tmp_file(monkeypatch, tmp_path)
+    case_id = cases.save_case(board_output={"synthesis": "1. Test disease"})
+
+    n = 25
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        results = list(pool.map(
+            lambda i: cases.append_comment(case_id, author=f"Dr. {i}", text=f"comment {i}"),
+            range(n),
+        ))
+
+    assert all(results), "every concurrent comment should have been recorded"
+
+    entry = cases.load_case(case_id)
+    assert len(entry["team_comments"]) == n
+    assert {c["text"] for c in entry["team_comments"]} == {f"comment {i}" for i in range(n)}
+
+    # The file must still be exactly one valid JSON object per case, not a
+    # truncated or interleaved mess from unlocked concurrent rewrites.
+    lines = [l for l in path.read_text(encoding="utf-8").split("\n") if l.strip()]
+    assert len(lines) == 1
+    json.loads(lines[0])
+
+
+def test_save_case_survives_concurrent_writers(monkeypatch, tmp_path):
+    path = _use_tmp_file(monkeypatch, tmp_path)
+
+    n = 25
+    with ThreadPoolExecutor(max_workers=n) as pool:
+        case_ids = list(pool.map(
+            lambda i: cases.save_case(board_output={"synthesis": f"1. Disease {i}" * 200}),
+            range(n),
+        ))
+
+    assert len(set(case_ids)) == n  # every ID unique, none silently overwritten
+
+    lines = [l for l in path.read_text(encoding="utf-8").split("\n") if l.strip()]
+    assert len(lines) == n
+    for line in lines:
+        json.loads(line)  # every line intact, not interleaved with another writer's
 
 
 def test_extract_top_diagnosis_strips_rare_tag():
