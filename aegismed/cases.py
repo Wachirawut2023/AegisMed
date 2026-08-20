@@ -6,13 +6,41 @@ and team comment append. Each case is self-contained and can be retrieved later
 for case-conference follow-up, second-opinion review, or team discussion.
 """
 
+import fcntl
 import json
+import os
 import uuid
+from contextlib import contextmanager
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import IO, Optional
 
 CASES_FILE = Path(__file__).resolve().parent.parent / "data" / "cases.jsonl"
+
+
+@contextmanager
+def _locked_file(mode: str, lock_type: int) -> "IO[str]":
+    """Open CASES_FILE under an flock so readers and writers never interleave.
+
+    append_comment does a read-modify-write of the *entire* file, and a
+    board_output line can easily exceed PIPE_BUF, so unlocked concurrent
+    writers can both interleave partial lines and silently drop each other's
+    updates. LOCK_EX (writers) blocks everyone else out; LOCK_SH (readers)
+    just blocks until any in-progress write finishes, so a read never lands
+    mid-rewrite.
+    """
+    f = open(CASES_FILE, mode, encoding="utf-8")
+    try:
+        fcntl.flock(f.fileno(), lock_type)
+        yield f
+    finally:
+        # A write sitting in Python's buffer isn't visible to the next
+        # opener yet — flush (and fsync, so it survives a crash) BEFORE
+        # unlocking, or releasing the lock races the data actually landing.
+        f.flush()
+        os.fsync(f.fileno())
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+        f.close()
 
 
 def generate_case_id() -> str:
@@ -49,7 +77,7 @@ def save_case(
 
     # Append to the cases log (create file if it doesn't exist).
     CASES_FILE.parent.mkdir(parents=True, exist_ok=True)
-    with open(CASES_FILE, "a", encoding="utf-8") as f:
+    with _locked_file("a", fcntl.LOCK_EX) as f:
         f.write(json.dumps(case_entry) + "\n")
 
     return case_id
@@ -64,7 +92,7 @@ def load_case(case_id: str) -> Optional[dict]:
     if not CASES_FILE.exists():
         return None
 
-    with open(CASES_FILE, "r", encoding="utf-8") as f:
+    with _locked_file("r", fcntl.LOCK_SH) as f:
         for line in f:
             if not line.strip():
                 continue
@@ -86,7 +114,7 @@ def list_cases(specialty: str = "", limit: int = 50) -> list[dict]:
         return []
 
     cases = []
-    with open(CASES_FILE, "r", encoding="utf-8") as f:
+    with _locked_file("r", fcntl.LOCK_SH) as f:
         for line in f:
             if not line.strip():
                 continue
@@ -121,10 +149,12 @@ def append_comment(case_id: str, author: str, text: str) -> bool:
     if not CASES_FILE.exists():
         return False
 
-    lines = []
-    found = False
+    # Read and rewrite under ONE held lock (not open-read-close-open-write) so
+    # no other process's write or read can land between the two halves.
+    with _locked_file("r+", fcntl.LOCK_EX) as f:
+        lines = []
+        found = False
 
-    with open(CASES_FILE, "r", encoding="utf-8") as f:
         for line in f:
             if not line.strip():
                 continue
@@ -139,11 +169,11 @@ def append_comment(case_id: str, author: str, text: str) -> bool:
                 entry.setdefault("team_comments", []).append(comment)
             lines.append(json.dumps(entry))
 
-    if not found:
-        return False
+        if not found:
+            return False
 
-    # Rewrite the file with the updated entry
-    with open(CASES_FILE, "w", encoding="utf-8") as f:
+        f.seek(0)
+        f.truncate()
         f.write("\n".join(lines) + "\n")
 
     return True
