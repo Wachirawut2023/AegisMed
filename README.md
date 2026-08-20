@@ -96,6 +96,7 @@ All settings live in `.env` (see `.env.example`):
 | `FIREWORKS_API_KEY` | *(empty)* | Your Fireworks AI key ($50 free via the AMD AI Developer Program) |
 | `MODEL` | `accounts/fireworks/models/gemma-3-27b-it` | Which model powers the agents |
 | `DEMO_MODE` | `auto` | `auto` / `true` / `false` — sample output vs. real AI |
+| `RATE_LIMIT_PER_MINUTE` | `20` | Max requests per client IP per minute on the board/case endpoints (`0` disables) |
 
 ## Tech stack
 

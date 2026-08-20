@@ -10,9 +10,10 @@ import os
 
 os.environ["DEMO_MODE"] = "true"
 
+import pytest
 from fastapi.testclient import TestClient
 
-from aegismed import cases, llm
+from aegismed import cases, llm, ratelimit
 from aegismed.demo_data import EXAMPLE_CASE
 from aegismed.main import app
 
@@ -23,6 +24,16 @@ VALID_CASE = {
     "history": "maternal uncle died of renal failure",
     "labs": "proteinuria; LVH on ECG",
 }
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limit_buckets():
+    # All requests in this module share one TestClient (one simulated client
+    # IP), so without a reset the per-test request counts would accumulate
+    # across the whole file and later tests could get spuriously 429'd.
+    ratelimit.reset()
+    yield
+    ratelimit.reset()
 
 
 def test_diagnose_defaults_to_us_region():
@@ -321,3 +332,37 @@ def test_add_comment_success(monkeypatch, tmp_path):
 
     entry = cases.load_case(case_id)
     assert entry["team_comments"][0]["text"] == "Agree with the differential."
+
+
+# --- rate limiting -----------------------------------------------------------------
+
+
+def test_diagnose_returns_429_once_rate_limit_exceeded(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "2")
+
+    for _ in range(2):
+        assert client.post("/api/diagnose", json=VALID_CASE).status_code == 200
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+    assert resp.status_code == 429
+    assert "Retry-After" in resp.headers
+
+
+def test_rate_limit_is_disabled_when_set_to_zero(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "0")
+
+    for _ in range(5):
+        assert client.post("/api/diagnose", json=VALID_CASE).status_code == 200
+
+
+def test_read_only_endpoints_are_not_rate_limited(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "1")
+
+    # Use up /api/diagnose's budget...
+    assert client.post("/api/diagnose", json=VALID_CASE).status_code == 200
+    assert client.post("/api/diagnose", json=VALID_CASE).status_code == 429
+
+    # ...but plain reads are a different (unlimited) code path entirely.
+    for _ in range(5):
+        assert client.get("/health").status_code == 200
+        assert client.get("/api/example-case").status_code == 200

@@ -10,11 +10,11 @@ Routes:
 import json
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from . import __version__, cases, config, intake, knowledge, llm, orchestrator
+from . import __version__, cases, config, intake, knowledge, llm, orchestrator, ratelimit
 from .demo_data import EXAMPLE_CASE
 
 TAGS_METADATA = [
@@ -206,6 +206,7 @@ async def demo_cases() -> list[dict]:
     tags=["diagnosis"],
     summary="Intake: ask for missing details",
     description="Runs one quick model call that returns high-value clarifying questions (or none). Optional — you may skip straight to /api/diagnose.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def intake_questions(case: PatientCase) -> dict:
     """Intake step: ask the physician for missing high-value details, if any.
@@ -231,6 +232,7 @@ async def intake_questions(case: PatientCase) -> dict:
     tags=["diagnosis"],
     summary="Convene the board",
     description="Runs the full diagnostic board and returns the ranked differential, specialist opinions, verified citations, and clinical-guideline search links.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def diagnose(case: PatientCase) -> dict:
     try:
@@ -252,6 +254,7 @@ async def diagnose(case: PatientCase) -> dict:
     tags=["diagnosis"],
     summary="Teaching case evaluation",
     description="Runs the diagnostic board and compares the board's top diagnoses against an expected (correct) diagnosis. Returns the full board output plus match metrics for classroom or teaching scenarios.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def teaching_case(case: TeachingCase) -> dict:
     """Teaching mode: run the board and compare against an expected diagnosis.
@@ -308,6 +311,7 @@ async def teaching_case(case: TeachingCase) -> dict:
     tags=["team"],
     summary="Save a case for later review",
     description="Saves the result of a board run with optional metadata. Returns a case_id for later retrieval and team discussion.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def save_case_result(req: SaveCaseRequest) -> dict:
     """Save a completed board result for case-conference follow-up or team review.
@@ -384,6 +388,7 @@ async def list_cases_endpoint(specialty: str = "", limit: int = 50) -> list[dict
     tags=["team"],
     summary="Add a team comment to a case",
     description="Appends a timestamped comment from a team member to a case for case-conference discussion.",
+    dependencies=[Depends(ratelimit.enforce)],
 )
 async def add_comment(case_id: str, comment: CommentRequest) -> dict:
     """Append a team comment to a saved case.

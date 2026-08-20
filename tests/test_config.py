@@ -44,3 +44,23 @@ def test_specialist_selection_all(monkeypatch):
 def test_specialist_selection_unknown_value_defaults_to_relevant(monkeypatch):
     monkeypatch.setenv("SPECIALIST_SELECTION", "everyone-please")
     assert config.specialist_selection() == "relevant"
+
+
+def test_rate_limit_per_minute_defaults_to_20(monkeypatch):
+    monkeypatch.delenv("RATE_LIMIT_PER_MINUTE", raising=False)
+    assert config.rate_limit_per_minute() == 20
+
+
+def test_rate_limit_per_minute_reads_env(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "5")
+    assert config.rate_limit_per_minute() == 5
+
+
+def test_rate_limit_per_minute_zero_disables(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "0")
+    assert config.rate_limit_per_minute() == 0
+
+
+def test_rate_limit_per_minute_invalid_value_falls_back_to_20(monkeypatch):
+    monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "not-a-number")
+    assert config.rate_limit_per_minute() == 20
