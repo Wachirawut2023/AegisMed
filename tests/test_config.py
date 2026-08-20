@@ -13,21 +13,21 @@ def test_demo_mode_explicit_false(monkeypatch):
     assert config.demo_mode() is False
 
 
-def test_demo_mode_auto_without_api_key_is_true(monkeypatch):
+def test_demo_mode_auto_without_project_is_true(monkeypatch):
     monkeypatch.setenv("DEMO_MODE", "auto")
-    monkeypatch.setattr(config, "FIREWORKS_API_KEY", "")
+    monkeypatch.setattr(config, "GOOGLE_CLOUD_PROJECT", "")
     assert config.demo_mode() is True
 
 
-def test_demo_mode_auto_with_api_key_is_false(monkeypatch):
+def test_demo_mode_auto_with_project_is_false(monkeypatch):
     monkeypatch.setenv("DEMO_MODE", "auto")
-    monkeypatch.setattr(config, "FIREWORKS_API_KEY", "fw_some_key")
+    monkeypatch.setattr(config, "GOOGLE_CLOUD_PROJECT", "my-gcp-project")
     assert config.demo_mode() is False
 
 
 def test_demo_mode_defaults_to_auto_when_unset(monkeypatch):
     monkeypatch.delenv("DEMO_MODE", raising=False)
-    monkeypatch.setattr(config, "FIREWORKS_API_KEY", "fw_some_key")
+    monkeypatch.setattr(config, "GOOGLE_CLOUD_PROJECT", "my-gcp-project")
     assert config.demo_mode() is False
 
 

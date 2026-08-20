@@ -1,24 +1,26 @@
-# 🚀 Portfolio deployment — Firebase + Cloud Run (scale-to-zero)
+# 🚀 Portfolio deployment — Firebase + Cloud Run + Vertex AI (scale-to-zero)
 
 This is a *second* deployment target, added after the hackathon, for showing
 AegisMed as a live portfolio piece without paying for an always-on server.
 It does not replace the hackathon story in the main [README](../README.md) —
-that submission ran on AMD Developer Cloud with Fireworks AI, and that
-history stays as-is. This doc covers where the **public demo link** lives now.
+that submission ran on AMD Developer Cloud with Fireworks AI (Gemma on AMD
+hardware), and that history stays as-is. This doc covers where the **public
+demo link** lives now, which since this migration runs entirely on Google
+Cloud: Vertex AI for inference, Cloud Run for the app, Firebase for the
+frontend.
 
 ## The one insight that makes this free-when-idle
 
 People assume "the model" means a GPU instance you have to keep running.
 **It doesn't, here.** Look at `aegismed/llm.py`: every AI call in AegisMed is
-an HTTP request to Fireworks AI's *hosted* inference API. Fireworks bills
-per token, on their infrastructure — there is no GPU box of yours to leave
-running, so there is nothing to "drain your money" on that side no matter
-how AegisMed is deployed.
+an HTTP request to Vertex AI's Gemini API — a *fully managed*, pay-per-token
+endpoint. There is no GPU box of yours to leave running, so there is nothing
+to "drain your money" on that side no matter how AegisMed is deployed.
 
 The only thing that actually runs continuously — and could cost money 24/7
 — is the small FastAPI container in this repo (`aegismed/main.py`, already
 Dockerized). That's a lightweight orchestrator: it serves the page, calls
-Fireworks, and returns JSON. It's a perfect fit for a platform that scales
+Vertex AI, and returns JSON. It's a perfect fit for a platform that scales
 to **zero** running instances when nobody's using it, and starts one up in a
 couple of seconds when a request arrives.
 
@@ -30,7 +32,7 @@ That platform is **Cloud Run**.
 flowchart LR
     V[Portfolio visitor] -->|clicks your link| FH[Firebase Hosting<br>static/index.html]
     FH -->|"/api/** and /health<br>same-origin rewrite"| CR[Cloud Run: aegismed<br>min-instances = 0]
-    CR -->|only while handling<br>a request| FW[Fireworks AI API<br>pay-per-token]
+    CR -->|only while handling a request,<br>authenticated via ADC — no API key| VX[Vertex AI Gemini API<br>pay-per-token]
     CR -.->|idle, no traffic| Z[0 instances running<br>$0 compute cost]
 ```
 
@@ -46,12 +48,28 @@ flowchart LR
   Cloud Run kills the last container a short idle period after the last
   request and bills **nothing** while at zero. The next visitor's request
   triggers a cold start (a few seconds for this app) and gets served.
-- **Fireworks AI** stays exactly as it is today — pay-per-token, no idle
-  cost, nothing to turn on or off.
+- **Vertex AI** serves the Gemini model itself — fully managed, pay-per-token,
+  no idle cost, nothing to turn on or off. It's the Google Cloud equivalent
+  of what Fireworks AI did for the hackathon build, so moving the whole app
+  onto Google Cloud (as opposed to splitting inference across a different
+  vendor) was a straightforward swap in one file.
 
 Net effect: **when nobody has your portfolio link open, this costs $0.**
 When someone visits, it wakes up automatically, answers, and goes back to
 sleep — no manual start/stop, no forgotten running instance.
+
+## No API key, anywhere
+
+The Fireworks-based build needed `FIREWORKS_API_KEY`. This one needs no key
+at all — `aegismed/llm.py` authenticates to Vertex AI with **Application
+Default Credentials (ADC)**:
+
+- **On Cloud Run**, the service's attached identity (its runtime service
+  account) authenticates automatically. `scripts/deploy.sh` grants that
+  account the `roles/aiplatform.user` IAM role, which is all Vertex AI
+  needs — there's no secret to generate, store, or rotate.
+- **Locally**, run `gcloud auth application-default login` once; after that,
+  `aegismed/llm.py` picks up your own Google Cloud identity the same way.
 
 ## One-time setup
 
@@ -71,11 +89,11 @@ firebase login
 # Point this repo's Firebase config at your project
 firebase use --add   # pick your project, alias it "default"
 # or edit .firebaserc directly and replace YOUR_FIREBASE_PROJECT_ID
-
-# Enable the APIs Cloud Run needs (one-time per project)
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
-  --project YOUR_PROJECT_ID
 ```
+
+`scripts/deploy.sh` itself enables the required APIs (Cloud Run, Cloud
+Build, Vertex AI) and grants the Vertex AI IAM role, so there's nothing
+further to do here — just run the deploy.
 
 If `firebase.json`'s hosting `rewrites` region (`us-central1`) doesn't match
 where you deploy the Cloud Run service, update both to agree — the region
@@ -89,14 +107,15 @@ REGION=us-central1 \
   ./scripts/deploy.sh
 ```
 
-No Fireworks API key is asked for or used — this deployment runs
-permanently in demo mode (see below), so there's no secret to provide.
+This runs real Vertex AI inference by default (`DEMO_MODE=auto`, and the
+script always sets `GOOGLE_CLOUD_PROJECT`, so `auto` resolves to "on"). No
+key to provide — see above. This runs three things (see `scripts/deploy.sh`
+for the exact commands):
 
-This runs two commands (see `scripts/deploy.sh` for the exact flags):
-
-1. `gcloud run deploy` — builds the existing `Dockerfile` with Cloud Build
+1. Enable APIs + grant the Cloud Run service account `roles/aiplatform.user`.
+2. `gcloud run deploy` — builds the existing `Dockerfile` with Cloud Build
    and deploys it with `--min-instances 0`.
-2. `firebase deploy --only hosting` — publishes `static/index.html` and the
+3. `firebase deploy --only hosting` — publishes `static/index.html` and the
    `/api/**` → Cloud Run rewrite.
 
 You'll get a `*.web.app` / `*.firebaseapp.com` URL (or attach a custom
@@ -104,29 +123,34 @@ domain in the Firebase console) — that's the link to put in your portfolio.
 
 Redeploying later (after code changes) is the same one command.
 
-## Keeping the "portfolio committee visits, nobody else" cost near zero
+Prefer zero per-request cost over live inference? Force the canned demo
+instead:
 
-A public link can, in theory, be hit by more than your intended visitors.
-A few things in this repo and in the deploy script already bound the
-worst case:
+```bash
+DEMO_MODE=true PROJECT_ID=your-gcp-project REGION=us-central1 ./scripts/deploy.sh
+```
+
+Every request then returns the built-in board output with no Vertex AI call
+at all — visitors see the identical polished example case, and the "no idle
+cost" story becomes "no cost, period."
+
+## Keeping the cost near zero even with real inference on
+
+A public link can, in theory, be hit by more than your intended visitors. A
+few things already bound the worst case:
 
 - **`--max-instances 3`** in `scripts/deploy.sh` caps how many concurrent
   Cloud Run containers can ever run, so a traffic spike can't scale
   unboundedly.
 - **`RATE_LIMIT_PER_MINUTE`** (already in `aegismed/config.py`, default 20)
   throttles the expensive endpoints per client IP.
-- **`DEMO_MODE=true`** — `scripts/deploy.sh` sets this explicitly (rather
-  than relying on `auto` + "just don't set a key") so the portfolio
-  deployment is unconditionally demo mode: every request returns the
-  built-in canned board output, a fully working, good-looking demo at
-  **zero** per-request cost, with no API key involved anywhere in the
-  deploy. If you ever want reviewers to try their own cases against the
-  real model, that's a deliberate later change — set `DEMO_MODE=false` and
-  add `FIREWORKS_API_KEY` to the Cloud Run service's env vars (ideally via
-  Secret Manager rather than a plain env var).
-- Set a **budget alert** as a backstop regardless: Cloud Console → Billing →
-  Budgets & alerts → create a small budget (e.g. $5) with an email alert.
-  Costs nothing itself and catches anything unexpected.
+- Gemini Flash-tier models are priced per token and are inexpensive for
+  short clinical-case prompts; a board run is a handful of calls (a few
+  thousand tokens total), so realistic portfolio traffic — a hiring
+  committee clicking through a few cases — costs a small fraction of a
+  cent. Still, set a **budget alert** as a backstop: Cloud Console →
+  Billing → Budgets & alerts → create a small budget (e.g. $5) with an
+  email alert. Costs nothing itself and catches anything unexpected.
 
 ## Known limitation: case storage isn't durable here
 

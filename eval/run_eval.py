@@ -131,11 +131,11 @@ async def main_async(args) -> None:
 
     if config.demo_mode():
         print("⚠️  DEMO MODE: the app returns a fixed sample answer, so these")
-        print("    scores are NOT meaningful. Set FIREWORKS_API_KEY in .env for")
-        print("    a real evaluation. Running anyway to test the pipeline.\n")
+        print("    scores are NOT meaningful. Set GOOGLE_CLOUD_PROJECT in .env")
+        print("    for a real evaluation. Running anyway to test the pipeline.\n")
 
     intake_note = "on (auto-answered from case)" if not args.no_intake else "off"
-    print(f"Scoring {len(cases)} cases with model: {config.MODEL}")
+    print(f"Scoring {len(cases)} cases with model: {config.VERTEX_MODEL}")
     print(f"Intake step: {intake_note}\n")
     rows = []
     for i, case in enumerate(cases, 1):
@@ -170,7 +170,7 @@ def write_report(rows: list[dict], alias_table: dict, use_intake: bool = True) -
         per[r["source"]][0] += int(r["hit"])
 
     lines = ["# AegisMed evaluation results", ""]
-    lines.append(f"**Model:** `{config.MODEL}`  ")
+    lines.append(f"**Model:** `{config.VERTEX_MODEL}`  ")
     lines.append(f"**Intake step:** {'on — questions auto-answered from the case' if use_intake else 'off'}  ")
     lines.append(f"**Demo mode:** {config.demo_mode()} "
                  f"{'(scores not meaningful)' if config.demo_mode() else ''}  ")
