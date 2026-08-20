@@ -9,13 +9,16 @@ Routes:
 
 import json
 from pathlib import Path
+from urllib.parse import urlparse
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from . import __version__, cases, config, intake, knowledge, llm, orchestrator, ratelimit
 from .demo_data import EXAMPLE_CASE
+
+_ALLOWED_URL_SCHEMES = {"http", "https"}
 
 TAGS_METADATA = [
     {"name": "diagnosis", "description": "The core board: intake questions and the full diagnostic run."},
@@ -41,6 +44,17 @@ STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 class ReferenceLink(BaseModel):
     label: str = Field(..., max_length=200)
     url: str = Field(..., max_length=500)
+
+    @field_validator("url")
+    @classmethod
+    def _require_http_scheme(cls, value: str) -> str:
+        # This renders as a clickable <a href> for other clinicians
+        # (static/index.html's linkList()) — a javascript:/data: scheme here
+        # would be a stored XSS the moment someone clicks it. Only http(s).
+        scheme = urlparse(value).scheme.lower()
+        if scheme not in _ALLOWED_URL_SCHEMES:
+            raise ValueError(f"url must be http:// or https://, got scheme {scheme!r}")
+        return value
 
 
 class DiagnosisReference(BaseModel):

