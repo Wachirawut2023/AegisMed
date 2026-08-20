@@ -64,3 +64,23 @@ def test_rate_limit_per_minute_zero_disables(monkeypatch):
 def test_rate_limit_per_minute_invalid_value_falls_back_to_20(monkeypatch):
     monkeypatch.setenv("RATE_LIMIT_PER_MINUTE", "not-a-number")
     assert config.rate_limit_per_minute() == 20
+
+
+def test_max_request_body_bytes_defaults_to_10mb(monkeypatch):
+    monkeypatch.delenv("MAX_REQUEST_BODY_BYTES", raising=False)
+    assert config.max_request_body_bytes() == 10 * 1024 * 1024
+
+
+def test_max_request_body_bytes_reads_env(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "1000")
+    assert config.max_request_body_bytes() == 1000
+
+
+def test_max_request_body_bytes_invalid_value_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "not-a-number")
+    assert config.max_request_body_bytes() == 10 * 1024 * 1024
+
+
+def test_max_request_body_bytes_non_positive_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "0")
+    assert config.max_request_body_bytes() == 10 * 1024 * 1024

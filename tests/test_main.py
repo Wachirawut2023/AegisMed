@@ -416,3 +416,42 @@ def test_read_only_endpoints_are_not_rate_limited(monkeypatch):
     for _ in range(5):
         assert client.get("/health").status_code == 200
         assert client.get("/api/example-case").status_code == 200
+
+
+# --- request body size limit --------------------------------------------------------
+
+
+def test_oversized_request_body_returns_413(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "100")
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)  # well over 100 bytes as JSON
+
+    assert resp.status_code == 413
+
+
+def test_request_body_within_limit_is_unaffected(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "1000000")
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+
+    assert resp.status_code == 200
+
+
+# --- security response headers ------------------------------------------------------
+
+
+def test_responses_carry_security_headers():
+    resp = client.get("/health")
+
+    assert resp.headers["X-Content-Type-Options"] == "nosniff"
+    assert resp.headers["X-Frame-Options"] == "DENY"
+    assert "default-src 'self'" in resp.headers["Content-Security-Policy"]
+
+
+def test_security_headers_present_even_on_413_response(monkeypatch):
+    monkeypatch.setenv("MAX_REQUEST_BODY_BYTES", "100")
+
+    resp = client.post("/api/diagnose", json=VALID_CASE)
+
+    assert resp.status_code == 413
+    assert resp.headers["X-Content-Type-Options"] == "nosniff"

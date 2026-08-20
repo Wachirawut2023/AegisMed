@@ -58,3 +58,22 @@ def rate_limit_per_minute() -> int:
         return int(raw)
     except ValueError:
         return 20
+
+
+_DEFAULT_MAX_BODY_BYTES = 10 * 1024 * 1024  # 10 MB
+
+
+def max_request_body_bytes() -> int:
+    """Max raw request body size in bytes, rejected before any JSON parsing.
+
+    Pydantic's per-field max_length only applies AFTER Starlette has already
+    read the whole body into memory, so it can't stop an oversized body from
+    being buffered in the first place. This is checked earlier, by
+    aegismed.bodylimit's ASGI middleware.
+    """
+    raw = os.getenv("MAX_REQUEST_BODY_BYTES", str(_DEFAULT_MAX_BODY_BYTES)).strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        return _DEFAULT_MAX_BODY_BYTES
+    return value if value > 0 else _DEFAULT_MAX_BODY_BYTES

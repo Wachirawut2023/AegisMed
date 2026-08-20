@@ -97,6 +97,7 @@ All settings live in `.env` (see `.env.example`):
 | `MODEL` | `accounts/fireworks/models/gemma-3-27b-it` | Which model powers the agents |
 | `DEMO_MODE` | `auto` | `auto` / `true` / `false` — sample output vs. real AI |
 | `RATE_LIMIT_PER_MINUTE` | `20` | Max requests per client IP per minute on the board/case endpoints (`0` disables) |
+| `MAX_REQUEST_BODY_BYTES` | `10485760` (10 MB) | Largest request body accepted, checked before any JSON parsing |
 
 ## Tech stack
 

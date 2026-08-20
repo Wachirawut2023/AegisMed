@@ -11,11 +11,12 @@ import json
 from pathlib import Path
 from urllib.parse import urlparse
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field, field_validator
 
 from . import __version__, cases, config, intake, knowledge, llm, orchestrator, ratelimit
+from .bodylimit import MaxBodySizeMiddleware
 from .demo_data import EXAMPLE_CASE
 
 _ALLOWED_URL_SCHEMES = {"http", "https"}
@@ -37,6 +38,40 @@ app = FastAPI(
     version=__version__,
     openapi_tags=TAGS_METADATA,
 )
+
+
+app.add_middleware(MaxBodySizeMiddleware)
+
+
+@app.middleware("http")
+async def _add_security_headers(request: Request, call_next):
+    """A handful of standard defense-in-depth headers on every response.
+
+    Starlette's add_middleware() PREPENDS to the middleware list (each new
+    entry becomes the new outermost layer), so registering this AFTER
+    MaxBodySizeMiddleware above puts it outside — these headers land even on
+    a 413 body-too-large rejection, not just normal responses.
+    script-src/style-src need 'unsafe-inline' because static/index.html is a
+    single inline <script>/<style> page with no nonce/hash build step;
+    everything rendered from user/LLM text there already goes through
+    escapeHtml()/renderText() (see the XSS fix in ReferenceLink).
+    """
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    return response
+
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
 
